@@ -228,17 +228,9 @@
     }
     .main-nav a:hover, .main-nav a:focus-visible, .main-nav a[aria-current="true"] { background: rgba(45, 106, 79, 0.1); }
 
-    /* ===== Hero ===== */
-    .hero {
-      position: relative; overflow: hidden; color: #fff;
-      background: linear-gradient(135deg, rgba(14, 35, 26, 0.82), rgba(45, 106, 79, 0.55)),
-        url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=75") center/cover no-repeat;
-    }
-    .hero::after {
-      content: ""; position: absolute; inset: auto -12% -26% auto; width: 18rem; height: 18rem;
-      border-radius: 50%; background: radial-gradient(circle, rgba(244, 163, 0, 0.5), transparent 70%); filter: blur(8px);
-    }
-    .hero-grid { position: relative; z-index: 1; display: grid; gap: 1.25rem; padding: 3.4rem 0 2.2rem; }
+    /* ===== Hero (old rules preserved for subcomponents) ===== */
+    .hero { display: none; }
+    .hero-compact + .hero { display: none; }
     .eyebrow {
       display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem; border-radius: 999px;
       background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.2); font-size: 0.88rem; width: fit-content;
@@ -290,6 +282,26 @@
     .info-card { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: var(--radius); padding: 1rem; backdrop-filter: blur(10px); }
     .info-card h3 { margin: 0 0 0.45rem; font-size: 1rem; }
     .info-card p { margin: 0; color: rgba(255, 255, 255, 0.88); }
+
+    /* ===== Hero (compact) ===== */
+    .hero-compact {
+      background: linear-gradient(135deg, var(--green-deep), var(--green));
+      color: #fff; padding: 1.2rem 0 0.6rem;
+    }
+    .hero-compact-inner { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+    .hc-left h2 { font-family: "Tiro Devanagari Hindi", serif; font-size: 1.2rem; margin: 0; }
+    .hc-left p { margin: 0.2rem 0 0; font-size: 0.85rem; opacity: 0.85; }
+    .hc-mic { padding: 0.7rem 1.1rem; font-size: 0.95rem; min-height: 48px; border-radius: 14px; }
+
+    /* ===== Home search box ===== */
+    .home-search { position: relative; margin-bottom: 1rem; }
+    .home-search input { width: 100%; border: 1px solid var(--line); border-radius: 16px; padding: 0.9rem 1rem; background: var(--surface); color: var(--text); font-size: 1rem; }
+    .home-search input::placeholder { color: var(--muted); }
+    .home-search-results { position: absolute; left: 0; right: 0; top: 100%; z-index: 10; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); display: none; max-height: 220px; overflow-y: auto; }
+    .home-search-results.show { display: block; }
+    .hsr-item { padding: 0.7rem 1rem; cursor: pointer; display: flex; gap: 0.6rem; align-items: center; }
+    .hsr-item:hover, .hsr-item:focus { background: rgba(45,106,79,0.08); }
+    .hsr-icon { font-size: 1.3rem; }
 
     /* ===== Stock ticker ===== */
     .stock-strip { background: var(--green-deep); color: #fef6e7; overflow: hidden; }
@@ -658,50 +670,17 @@
     </div>
   </header>
 
-  <section class="hero" id="home">
-    <div class="container hero-grid">
-      <div class="hero-copy">
-        <div class="eyebrow">उर्वरक • बीज • कीटनाशक • पाइप • पशु चारा</div>
-        <h2>किसान का साथी, खेत का आधार</h2>
-        <p>श्री नारायण कृषि सेवा केंद्र किसानों के लिए भरोसेमंद दुकान और उपयोगी जानकारी का एक ही डिजिटल ठिकाना है। यहां आप फसल के अनुसार दवा, खाद, बीज, मंडी भाव, मौसम, पाइप सलाह और सीधी WhatsApp सहायता पा सकते हैं।</p>
-        <div class="hero-actions">
-          <a class="btn" href="#crop-search">फसल के अनुसार खोजें</a>
-          <a class="btn-secondary" href="#contact">दुकान से संपर्क करें</a>
-        </div>
-
-        <!-- Dedicated voice search -->
-        <div class="voice-hero">
-          <h3>🎤 बोलकर खोजें — टाइप करने की जरूरत नहीं</h3>
-          <button class="voice-big-btn" id="heroVoiceBtn" type="button" aria-label="आवाज से खोजें">
-            <span class="mic-emoji" aria-hidden="true">🎤</span>
-            <span id="heroVoiceLabel">बोलने के लिए दबाएं</span>
-          </button>
-          <div class="voice-status" id="heroVoiceStatus" aria-live="polite"></div>
-          <div class="voice-examples" aria-hidden="true">
-            <span class="voice-chip">"गेहूं की दवा"</span>
-            <span class="voice-chip">"सोयाबीन का भाव"</span>
-            <span class="voice-chip">"DAP"</span>
-            <span class="voice-chip">"मौसम"</span>
-          </div>
-          <p class="voice-hint">सुझाव: फसल का नाम, उत्पाद, "मंडी भाव" या "मौसम" बोलें — सही सेक्शन अपने आप खुलेगा।</p>
-        </div>
+  <section class="hero-compact" id="home">
+    <div class="container hero-compact-inner">
+      <div class="hc-left">
+        <h2>श्री नारायण कृषि सेवा केंद्र</h2>
+        <p>किसान का साथी, खेत का आधार • कायथा, उज्जैन</p>
       </div>
-
-      <div class="hero-panels">
-        <div class="info-card">
-          <h3>आज की उपलब्ध सेवाएं</h3>
-          <p>फसल सलाह, उत्पाद उपलब्धता, मौसम, मंडी भाव, सरकारी योजना, वीडियो गाइड और QR शेयर सुविधा।</p>
-        </div>
-        <div class="info-card">
-          <h3>स्थान</h3>
-          <p>कायथा ग्राम, उज्जैन जिला, मध्य प्रदेश</p>
-        </div>
-        <div class="info-card">
-          <h3>किसानों के लिए खास</h3>
-          <p>मोबाइल-फ्रेंडली, हिंदी में, कम डेटा में तेज चलने वाली वेबसाइट।</p>
-        </div>
-      </div>
+      <button class="voice-big-btn hc-mic" id="heroVoiceBtn" type="button" aria-label="आवाज से खोजें">
+        <span class="mic-emoji" aria-hidden="true">🎤</span><span id="heroVoiceLabel">बोलें</span>
+      </button>
     </div>
+    <div class="voice-status container" id="heroVoiceStatus" aria-live="polite" style="font-size:0.85rem; padding-bottom:0.6rem;"></div>
   </section>
 
   <div class="stock-strip" aria-label="स्टॉक उपलब्धता">
@@ -717,7 +696,11 @@
       <div class="container">
         <div class="section-head">
           <h2>क्या देखना है?</h2>
-          <p>नीचे से कोई भी विकल्प चुनें — सिर्फ वही जानकारी खुलेगी, पूरा पेज स्क्रॉल करने की जरूरत नहीं।</p>
+        </div>
+
+        <div class="home-search">
+          <input id="homeSearchInput" type="text" placeholder="🔍 खोजें — जैसे 'मंडी भाव', 'गेहूं', 'संपर्क'" aria-label="सेक्शन खोजें">
+          <div class="home-search-results" id="homeSearchResults"></div>
         </div>
 
         <div class="view-menu" id="viewMenu"></div>
@@ -2059,6 +2042,36 @@
       buildHomeMenu();
       updateNavVisibility();
       showView("overview");
+      initHomeSearch();
+    }
+
+    /* ===== Home search (type to jump to a section) ===== */
+    function initHomeSearch() {
+      const input = $("homeSearchInput"); const box = $("homeSearchResults");
+      if (!input || !box) return;
+      const allItems = VIEWS.map((v) => ({ id: v.id, icon: v.icon, label: v.label, feature: v.feature, keywords: v.label.toLowerCase() }));
+      // also add crop/product names as searchable items
+      function getSearchable() {
+        const items = allItems.filter((v) => !(v.feature && featureState[v.feature] === false));
+        Object.keys(cropsData).forEach((c) => items.push({ id: "crop-search", icon: "🌱", label: c, keywords: c.toLowerCase(), cropDirect: c }));
+        Object.keys(productsData).forEach((p) => items.push({ id: "product-search", icon: "🧪", label: p + " (" + (productsData[p].name || p) + ")", keywords: (p + " " + (productsData[p].aliases || []).join(" ")).toLowerCase(), productDirect: p }));
+        return items;
+      }
+      input.addEventListener("input", () => {
+        const q = input.value.trim().toLowerCase();
+        if (!q) { box.classList.remove("show"); box.innerHTML = ""; return; }
+        const matches = getSearchable().filter((it) => it.keywords.includes(q) || it.label.toLowerCase().includes(q)).slice(0, 8);
+        if (!matches.length) { box.classList.remove("show"); box.innerHTML = ""; return; }
+        box.innerHTML = matches.map((m, i) => `<div class="hsr-item" tabindex="0" data-i="${i}"><span class="hsr-icon">${esc(m.icon)}</span><span>${esc(m.label)}</span></div>`).join("");
+        box.classList.add("show");
+        box.querySelectorAll(".hsr-item").forEach((el, i) => {
+          const go = () => { const m = matches[i]; if (m.cropDirect) { showView("crop-search"); renderCropResult(m.cropDirect); } else if (m.productDirect) { showView("product-search"); renderProductResult(m.productDirect); } else showView(m.id); input.value = ""; box.classList.remove("show"); box.innerHTML = ""; };
+          el.addEventListener("click", go);
+          el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+        });
+      });
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") { const first = box.querySelector(".hsr-item"); if (first) first.click(); } });
+      document.addEventListener("click", (e) => { if (!e.target.closest(".home-search")) { box.classList.remove("show"); } });
     }
 
     /* ====================== QR ====================== */
