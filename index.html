@@ -465,6 +465,42 @@
     .back-to-top { position: fixed; right: 1rem; bottom: 5.4rem; width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--green-deep); color: #fff; border: 0; cursor: pointer; box-shadow: var(--shadow); z-index: 60; font-size: 1.2rem; opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease; }
     .back-to-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
 
+    /* ===== Voice floating button + assistant panel ===== */
+    .voice-fab {
+      position: fixed; left: 1rem; bottom: 1rem; z-index: 70;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.9rem 1.2rem; border: 0; border-radius: 999px; cursor: pointer;
+      background: linear-gradient(135deg, #1fbf63, #16a34a); color: #fff; font-weight: 700; font-size: 1.05rem;
+      box-shadow: 0 16px 34px rgba(31,191,99,0.4); transition: transform 0.2s ease;
+    }
+    .voice-fab:hover { transform: translateY(-2px); }
+    .voice-fab .vf-mic { font-size: 1.3rem; }
+    .voice-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 125; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+    .voice-backdrop.open { opacity: 1; visibility: visible; }
+    .voice-panel {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 130;
+      background: var(--surface); color: var(--text);
+      border-radius: 24px 24px 0 0; box-shadow: 0 -16px 44px rgba(0,0,0,0.25);
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)); 
+      transform: translateY(110%); transition: transform 0.32s ease;
+      max-height: 78vh; display: flex; flex-direction: column; gap: 0.7rem;
+    }
+    .voice-panel.open { transform: translateY(0); }
+    .vp-head { display: flex; align-items: center; justify-content: space-between; }
+    .vp-head strong { font-family: "Tiro Devanagari Hindi", serif; color: var(--green-deep); font-size: 1.15rem; }
+    .vp-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; min-height: 90px; max-height: 38vh; padding: 0.2rem; }
+    .vp-msg { max-width: 85%; padding: 0.6rem 0.85rem; border-radius: 16px; line-height: 1.4; font-size: 0.97rem; word-break: break-word; }
+    .vp-msg.user { align-self: flex-end; background: var(--green); color: #fff; border-bottom-right-radius: 4px; }
+    .vp-msg.bot { align-self: flex-start; background: rgba(45,106,79,0.1); color: var(--text); border-bottom-left-radius: 4px; }
+    .vp-status { min-height: 1.2em; color: var(--muted); font-size: 0.9rem; text-align: center; }
+    .vp-examples { display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: center; }
+    .vp-examples .voice-chip { background: rgba(45,106,79,0.1); border: 1px solid var(--line); color: var(--green-deep); padding: 0.4rem 0.8rem; border-radius: 999px; font-size: 0.85rem; cursor: pointer; }
+    .vp-mic { width: 100%; }
+    @media (min-width: 700px) {
+      .voice-panel { left: 50%; right: auto; transform: translate(-50%, 110%); width: min(440px, 94%); border-radius: 24px; bottom: 1rem; }
+      .voice-panel.open { transform: translate(-50%, 0); }
+    }
+
     /* ===== Offline banner ===== */
     .offline-banner { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; background: #b13d18; color: #fff; text-align: center; padding: 0.7rem 1rem; font-weight: 600; transform: translateY(100%); transition: transform 0.3s ease; }
     .offline-banner.show { transform: translateY(0); }
@@ -1140,6 +1176,29 @@
 
   <button class="back-to-top" id="backToTop" type="button" aria-label="ऊपर जाएं">↑</button>
   <a class="whatsapp-float" id="whatsappFloat" href="#" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp पर चैट करें">💬</a>
+  <button class="voice-fab" id="voiceFab" type="button" aria-label="आवाज़ से खोजें">
+    <span class="vf-mic" aria-hidden="true">🎤</span><span class="vf-label">बोलें</span>
+  </button>
+
+  <!-- ===== Voice Assistant Panel (bottom sheet) ===== -->
+  <div class="voice-backdrop" id="voiceBackdrop"></div>
+  <section class="voice-panel" id="voicePanel" role="dialog" aria-modal="true" aria-label="आवाज़ सहायक">
+    <div class="vp-head">
+      <strong>🎤 आवाज़ सहायक</strong>
+      <button class="modal-close" id="voicePanelClose" type="button" aria-label="बंद करें">✕</button>
+    </div>
+    <div class="vp-body" id="vpBody"></div>
+    <div class="vp-status" id="vpStatus" aria-live="polite"></div>
+    <div class="vp-examples">
+      <button class="voice-chip" type="button" data-vp-example="गेहूं की दवा">गेहूं की दवा</button>
+      <button class="voice-chip" type="button" data-vp-example="सोयाबीन का भाव">सोयाबीन का भाव</button>
+      <button class="voice-chip" type="button" data-vp-example="मौसम">मौसम</button>
+      <button class="voice-chip" type="button" data-vp-example="DAP">DAP</button>
+    </div>
+    <button class="voice-big-btn vp-mic" id="vpMic" type="button">
+      <span class="mic-emoji" aria-hidden="true">🎤</span><span id="vpMicLabel">बोलने के लिए दबाएं</span>
+    </button>
+  </section>
 
   <div class="offline-banner" id="offlineBanner" role="status">📡 आप ऑफलाइन हैं — कुछ सुविधाएं सीमित हो सकती हैं।</div>
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
@@ -1975,25 +2034,22 @@
       return "";
     }
 
-    // Shared handler used by both the big hero mic and the inline crop mic
+    // Shared handler. Returns { ok: true, summary: "..." } or { ok: false }.
     function handleSmartQuery(transcript) {
       const t = normalizeValue(transcript);
-      if (!t) return false;
+      if (!t) return { ok: false };
       const intent = detectIntent(t);
       const cropMatch = findCropMatch(transcript);
       const productMatch = findProductMatch(transcript);
 
-      // Price intent
       if (intent === "price") {
         renderMandiTable(); scrollToId("mandi");
-        toast(cropMatch ? `मंडी भाव — ${cropMatch}` : "मंडी भाव दिखाए जा रहे हैं", "info");
-        return true;
+        return { ok: true, summary: cropMatch ? `मंडी भाव दिखाया — ${cropMatch}` : "मंडी भाव दिखाया" };
       }
-      if (intent === "weather") { scrollToId("weather"); toast("मौसम जानकारी", "info"); return true; }
-      if (intent === "scheme") { scrollToId("schemes"); toast("सरकारी योजनाएं", "info"); return true; }
-      if (intent === "contact") { scrollToId("contact"); toast("संपर्क जानकारी", "info"); return true; }
+      if (intent === "weather") { scrollToId("weather"); return { ok: true, summary: "मौसम जानकारी दिखाई" }; }
+      if (intent === "scheme") { scrollToId("schemes"); return { ok: true, summary: "सरकारी योजनाएं दिखाईं" }; }
+      if (intent === "contact") { scrollToId("contact"); return { ok: true, summary: "संपर्क जानकारी दिखाई" }; }
 
-      // Disease intent with a crop -> show disease identifier, auto-pick symptom
       if (intent === "disease" && cropMatch) {
         renderCropResult(cropMatch);
         const sym = detectSymptom(t) || Object.keys(cropsData[cropMatch].symptoms)[0];
@@ -2003,44 +2059,35 @@
         scrollToId("crop-search");
         const dz = $("diseaseOutput");
         if (dz) { dz.classList.add("flash"); setTimeout(() => dz.classList.remove("flash"), 2200); }
-        toast(`${cropMatch} — रोग पहचान (${sym})`, "success");
-        return true;
+        return { ok: true, summary: `${cropMatch} — रोग पहचान (${sym})` };
       }
 
-      // Crop + specific topic (दवा/खाद/बीज/सिंचाई)
       if (cropMatch && ["fertilizer", "pesticide", "seed", "irrigation"].indexOf(intent) !== -1) {
         renderCropResult(cropMatch, intent); scrollToId("crop-search");
         const labels = { fertilizer: "खाद सुझाव", pesticide: "दवा सुझाव", seed: "बीज जानकारी", irrigation: "सिंचाई सुझाव" };
-        toast(`${cropMatch} → ${labels[intent]}`, "success");
-        return true;
+        return { ok: true, summary: `${cropMatch} → ${labels[intent]}` };
       }
 
-      // Product mentioned (e.g., "DAP कैसे डालें")
       if (productMatch && !cropMatch) {
         renderProductResult(productMatch); scrollToId("product-search");
-        toast(`उत्पाद: ${productMatch}`, "success");
-        return true;
+        return { ok: true, summary: `उत्पाद — ${productMatch}` };
       }
 
-      // Just a crop name, no specific topic
       if (cropMatch) {
         renderCropResult(cropMatch); scrollToId("crop-search");
-        toast(`फसल: ${cropMatch}`, "success");
-        return true;
+        return { ok: true, summary: `फसल — ${cropMatch}` };
       }
 
-      // Product as last resort
-      if (productMatch) { renderProductResult(productMatch); scrollToId("product-search"); toast(`उत्पाद: ${productMatch}`, "success"); return true; }
+      if (productMatch) { renderProductResult(productMatch); scrollToId("product-search"); return { ok: true, summary: `उत्पाद — ${productMatch}` }; }
 
-      return false;
+      return { ok: false };
     }
 
     function routeVoiceQuery(transcript) {
-      const ok = handleSmartQuery(transcript);
-      if (!ok) {
-        toast("समझ नहीं आया — फसल का नाम और 'दवा/खाद/बीज/भाव' बोलकर देखें", "warn", 4200);
-        logUnrecognized(transcript);
-      }
+      const r = handleSmartQuery(transcript);
+      if (r.ok) toast(r.summary, "success");
+      else { toast("समझ नहीं आया — फसल का नाम और 'दवा/खाद/बीज/भाव' बोलकर देखें", "warn", 4200); logUnrecognized(transcript); }
+      return r;
     }
 
     function logUnrecognized(q) {
@@ -2053,25 +2100,33 @@
     }
 
     function startRecognition(opts) {
-      // opts: { onResult, statusEl, button, mode, targetInput }
+      // opts: { onResult, onInterim, onEnd, statusEl, button, mode, targetInput, interim }
       if (!Recognition) {
         toast("इस ब्राउज़र में आवाज खोज उपलब्ध नहीं है — कृपया टाइप करें", "error");
         if (opts.statusEl) opts.statusEl.textContent = "आवाज खोज समर्थित नहीं — कृपया टाइप करके खोजें।";
+        if (typeof opts.onEnd === "function") opts.onEnd();
         return;
       }
       if (recognizing) return;
       const rec = new Recognition();
-      rec.lang = "hi-IN"; rec.interimResults = false; rec.maxAlternatives = 3;
+      rec.lang = "hi-IN"; rec.interimResults = !!opts.interim; rec.maxAlternatives = 3;
       recognizing = true;
       if (opts.button) opts.button.classList.add("listening");
       if (opts.statusEl) opts.statusEl.textContent = "🎙️ सुन रहे हैं… अब बोलें";
       try { rec.start(); } catch (e) { recognizing = false; }
 
       rec.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (opts.statusEl) opts.statusEl.textContent = `आपने कहा: "${transcript}"`;
-        if (opts.targetInput) { const inp = $(opts.targetInput); if (inp) inp.value = transcript; }
-        if (typeof opts.onResult === "function") opts.onResult(transcript);
+        let finalText = "", interimText = "";
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res.isFinal) finalText += res[0].transcript;
+          else interimText += res[0].transcript;
+        }
+        if (interimText && typeof opts.onInterim === "function") opts.onInterim(interimText);
+        if (!finalText) return;
+        if (opts.statusEl) opts.statusEl.textContent = `आपने कहा: "${finalText}"`;
+        if (opts.targetInput) { const inp = $(opts.targetInput); if (inp) inp.value = finalText; }
+        if (typeof opts.onResult === "function") opts.onResult(finalText);
       };
       rec.onerror = (event) => {
         let m = "आवाज पहचान में समस्या हुई।";
@@ -2079,26 +2134,90 @@
         else if (event.error === "no-speech") m = "कोई आवाज नहीं सुनाई दी — फिर कोशिश करें।";
         else if (event.error === "network") m = "नेटवर्क समस्या — कनेक्शन जांचें।";
         if (opts.statusEl) opts.statusEl.textContent = m;
+        if (typeof opts.onError === "function") opts.onError(m);
         toast(m, "error");
       };
       rec.onend = () => {
         recognizing = false;
         if (opts.button) opts.button.classList.remove("listening");
+        if (typeof opts.onEnd === "function") opts.onEnd();
       };
     }
 
-    function initHeroVoice() {
-      const btn = $("heroVoiceBtn"); const status = $("heroVoiceStatus"); const label = $("heroVoiceLabel");
-      if (!btn) return;
-      if (!Recognition) { status.textContent = "आवाज खोज इस ब्राउज़र में उपलब्ध नहीं — Chrome (Android) उपयोग करें।"; }
-      btn.addEventListener("click", () => {
-        if (recognizing) return;
-        if (label) label.textContent = "सुन रहे हैं…";
-        startRecognition({
-          button: btn, statusEl: status, onResult: (t) => { routeVoiceQuery(t); if (label) label.textContent = "बोलने के लिए दबाएं"; }
-        });
-        setTimeout(() => { if (!recognizing && label) label.textContent = "बोलने के लिए दबाएं"; }, 800);
+    /* ====================== VOICE ASSISTANT PANEL ====================== */
+    let voiceGreeted = false;
+    function vpAddMsg(text, who) {
+      const body = $("vpBody"); if (!body) return;
+      const div = document.createElement("div");
+      div.className = "vp-msg " + (who === "user" ? "user" : "bot");
+      div.textContent = text; // textContent = XSS-safe
+      body.appendChild(div);
+      body.scrollTop = body.scrollHeight;
+    }
+    function vpSetStatus(s) { safeText($("vpStatus"), s); }
+    function vpSetListening(on) {
+      const mic = $("vpMic"); const label = $("vpMicLabel");
+      if (mic) mic.classList.toggle("listening", on);
+      if (label) label.textContent = on ? "सुन रहे हैं… बोलें" : "बोलने के लिए दबाएं";
+    }
+    function openVoicePanel(autoListen) {
+      const panel = $("voicePanel"), bd = $("voiceBackdrop");
+      if (!panel) return;
+      panel.classList.add("open"); if (bd) bd.classList.add("open");
+      if (!voiceGreeted) {
+        if (Recognition) vpAddMsg("नमस्ते! 🎤 दबाकर बोलें — जैसे \"गेहूं की दवा\", \"सोयाबीन का भाव\", \"मौसम\"।", "bot");
+        else vpAddMsg("इस ब्राउज़र में आवाज़ उपलब्ध नहीं — कृपया Chrome (Android) उपयोग करें या टाइप करके खोजें।", "bot");
+        voiceGreeted = true;
+      }
+      if (autoListen && Recognition) setTimeout(vpListen, 400);
+    }
+    function closeVoicePanel() {
+      const panel = $("voicePanel"), bd = $("voiceBackdrop");
+      if (panel) panel.classList.remove("open");
+      if (bd) bd.classList.remove("open");
+    }
+    function vpListen() {
+      if (recognizing) return;
+      vpSetListening(true);
+      vpSetStatus("🎙️ सुन रहे हैं… अब बोलें");
+      startRecognition({
+        button: $("vpMic"), interim: true,
+        onInterim: (txt) => vpSetStatus("… " + txt),
+        onResult: (t) => {
+          vpAddMsg(t, "user");
+          vpSetStatus("");
+          const r = handleSmartQuery(t);
+          if (r.ok) vpAddMsg("✅ " + r.summary + " — ऊपर/नीचे देखें।", "bot");
+          else { vpAddMsg("❌ माफ़ करें, समझ नहीं आया। फसल का नाम और \"दवा / खाद / बीज / भाव\" बोलें।", "bot"); logUnrecognized(t); }
+        },
+        onError: (m) => { vpSetStatus(m); },
+        onEnd: () => { vpSetListening(false); }
       });
+    }
+    function initVoicePanel() {
+      const fab = $("voiceFab");
+      if (fab) fab.addEventListener("click", () => openVoicePanel(true));
+      const close = $("voicePanelClose"); if (close) close.addEventListener("click", closeVoicePanel);
+      const bd = $("voiceBackdrop"); if (bd) bd.addEventListener("click", closeVoicePanel);
+      const mic = $("vpMic"); if (mic) mic.addEventListener("click", vpListen);
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeVoicePanel(); });
+      // example chips inside the panel
+      document.querySelectorAll("[data-vp-example]").forEach((c) => c.addEventListener("click", () => {
+        const t = c.getAttribute("data-vp-example");
+        vpAddMsg(t, "user");
+        const r = handleSmartQuery(t);
+        if (r.ok) vpAddMsg("✅ " + r.summary + " — ऊपर/नीचे देखें।", "bot");
+        else vpAddMsg("❌ समझ नहीं आया।", "bot");
+      }));
+      if (!Recognition && fab) fab.title = "इस ब्राउज़र में आवाज़ सीमित — टाइप भी कर सकते हैं";
+    }
+
+    function initHeroVoice() {
+      const btn = $("heroVoiceBtn"); const status = $("heroVoiceStatus");
+      if (!btn) return;
+      if (!Recognition && status) status.textContent = "आवाज खोज इस ब्राउज़र में उपलब्ध नहीं — Chrome (Android) उपयोग करें।";
+      // Hero button now opens the unified voice assistant panel
+      btn.addEventListener("click", () => openVoicePanel(true));
     }
 
     function initInlineVoice(button) {
@@ -2109,11 +2228,8 @@
           button, targetInput: target, statusEl: null,
           onResult: (t) => {
             if (mode === "crop") {
-              // Use the intent-aware handler; fall back to plain crop match
-              if (!handleSmartQuery(t)) {
-                const m = findCropMatch(t);
-                if (m) renderCropResult(m); else toast("फसल नहीं मिली — दोबारा बोलें", "warn");
-              }
+              const r = handleSmartQuery(t);
+              if (!r.ok) { const m = findCropMatch(t); if (m) renderCropResult(m); else toast("फसल नहीं मिली — दोबारा बोलें", "warn"); }
             } else if (mode === "product") {
               const m = findProductMatch(t);
               if (m) renderProductResult(m); else toast("उत्पाद नहीं मिला — दोबारा बोलें", "warn");
@@ -2338,6 +2454,7 @@
       $("contactPhone").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
 
       $("heroVoiceBtn") && initHeroVoice();
+      initVoicePanel();
       document.querySelectorAll("[data-voice-target]").forEach(initInlineVoice);
     }
 
