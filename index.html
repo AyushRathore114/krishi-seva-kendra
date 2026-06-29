@@ -2419,7 +2419,10 @@
       const c = CONFIG.CLOUD || {};
       if (!c.binId || typeof fetch !== "function") return;
       const headers = {}; if (c.readKey) headers["X-Access-Key"] = c.readKey;
-      fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(c.binId) + "/latest?meta=false", { headers: headers })
+      // cache-busting (timestamp + no-store) so published edits always load fresh,
+      // even if the user never clears their browser cache
+      const url = "https://api.jsonbin.io/v3/b/" + encodeURIComponent(c.binId) + "/latest?meta=false&t=" + Date.now();
+      fetch(url, { headers: headers, cache: "no-store" })
         .then((r) => r.ok ? r.json() : Promise.reject(r.status))
         .then((d) => { applyData(d); reRenderContent(); })
         .catch(() => { /* keep local/defaults if cloud unavailable */ });
