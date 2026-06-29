@@ -530,6 +530,26 @@
     .switch input:focus-visible + .slider { outline: var(--focus-ring); outline-offset: 2px; }
     .admin-section-title { font-weight: 700; color: var(--green-deep); margin: 1.1rem 0 0.4rem; }
 
+    /* ===== Admin CMS ===== */
+    .admin-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.6rem 0 0.9rem; }
+    .admin-tabs button { padding: 0.45rem 0.7rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--green-deep); font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    .admin-tabs button.active { background: var(--green); color: #fff; border-color: var(--green); }
+    .admin-tab-body { max-height: 50vh; overflow-y: auto; padding: 0.2rem; }
+    .cms-item { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; padding: 0.6rem 0.7rem; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 0.5rem; background: var(--surface); }
+    .cms-item .ci-main { min-width: 0; }
+    .cms-item .ci-name { font-weight: 700; color: var(--green-deep); }
+    .cms-item .ci-sub { font-size: 0.8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cms-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+    .cms-btn { border: 0; border-radius: 10px; padding: 0.5rem 0.75rem; font-weight: 700; cursor: pointer; font-size: 0.88rem; }
+    .cms-btn.edit { background: rgba(45,106,79,0.12); color: var(--green-deep); }
+    .cms-btn.del { background: rgba(177,61,24,0.14); color: #b13d18; }
+    .cms-btn.add { background: var(--green); color: #fff; margin-bottom: 0.7rem; }
+    .cms-form .field { margin-bottom: 0.7rem; }
+    .cms-form .field input, .cms-form .field textarea, .cms-form .field select { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 0.65rem 0.85rem; background: var(--surface); color: var(--text); }
+    .cms-form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .cms-sym { border: 1px dashed var(--line); border-radius: 12px; padding: 0.6rem; margin-bottom: 0.6rem; }
+    .cms-sym h5 { margin: 0 0 0.4rem; color: var(--soil); }
+
     /* ===== Skeleton ===== */
     .skeleton { position: relative; overflow: hidden; background: var(--line); border-radius: 12px; min-height: 16px; }
     .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); animation: shimmer 1.3s infinite; }
@@ -1219,16 +1239,22 @@
         <p class="muted" style="margin-top:0.6rem; font-size:0.82rem;">डिफ़ॉल्ट पासकोड: <strong>krishi@123</strong> (कोड में ADMIN_PASSCODE से बदलें)</p>
       </div>
       <div id="adminPanelArea" class="hidden">
-        <div class="admin-section-title">सेक्शन चालू/बंद करें</div>
-        <div id="adminToggles"></div>
-        <div class="admin-section-title">दुकान सेटिंग्स</div>
-        <div class="admin-toggle-row">
-          <label for="adminHoliday" style="flex:1;">छुट्टी सूचना</label>
+        <div class="admin-tabs" id="adminTabs">
+          <button type="button" data-tab="features" class="active">⚙️ फीचर</button>
+          <button type="button" data-tab="shop">🏪 दुकान</button>
+          <button type="button" data-tab="crops">🌱 फसल</button>
+          <button type="button" data-tab="products">🧪 उत्पाद</button>
+          <button type="button" data-tab="mandi">📈 मंडी</button>
+          <button type="button" data-tab="stock">📦 स्टॉक</button>
+          <button type="button" data-tab="videos">🎬 वीडियो</button>
+          <button type="button" data-tab="testimonials">⭐ समीक्षा</button>
+          <button type="button" data-tab="schemes">🏛️ योजना</button>
+          <button type="button" data-tab="forum">💬 मंच</button>
+          <button type="button" data-tab="license">📜 लाइसेंस</button>
+          <button type="button" data-tab="backup">💾 बैकअप</button>
         </div>
-        <input id="adminHoliday" type="text" placeholder="जैसे: आज दोपहर 2 बजे तक बंद" style="width:100%; border:1px solid var(--line); border-radius:12px; padding:0.7rem 1rem; background:var(--surface); color:var(--text);">
-        <div class="share-row" style="margin-top:1.2rem;">
-          <button class="btn" type="button" id="adminSaveBtn">सेटिंग्स सेव करें</button>
-          <button class="share-btn" type="button" id="adminResetBtn" style="background:var(--brown);">रीसेट करें</button>
+        <div class="admin-tab-body" id="adminTabBody"></div>
+        <div class="share-row" style="margin-top:1rem;">
           <button class="share-btn" type="button" id="adminLogoutBtn" style="background:#c0392b;">लॉगआउट</button>
         </div>
       </div>
@@ -1278,7 +1304,7 @@
     };
 
     /* ====================== DATA ====================== */
-    const stockAvailability = [
+    let stockAvailability = [
       "DAP उपलब्ध है ✅",
       "यूरिया उपलब्ध है ✅",
       "क्लोरपाइरीफॉस स्टॉक नहीं ❌",
@@ -1287,7 +1313,7 @@
       "1 इंच पाइप स्टॉक में है ✅"
     ];
 
-    const cropsData = {
+    let cropsData = {
       "गेहूं": {
         image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Vehn%C3%A4pelto_6.jpg/500px-Vehn%C3%A4pelto_6.jpg",
         fertilizer: ["DAP: 45-50 किग्रा प्रति एकड़", "यूरिया: 40-45 किग्रा प्रति एकड़, दो भागों में", "जिंक सल्फेट: 10 किग्रा प्रति एकड़ (जरूरत अनुसार)"],
@@ -1416,7 +1442,7 @@
       }
     };
 
-    const productsData = {
+    let productsData = {
       "DAP": { name: "DAP", aliases: ["dap", "डीएपी", "डी ए पी"], crops: ["गेहूं", "धान", "सोयाबीन", "चना", "मक्का", "कपास", "उड़द", "मूंग"], quantity: "40-50 किग्रा प्रति एकड़", method: "बेसल डोज के रूप में बुवाई के समय मिट्टी में दें", precautions: "अत्यधिक नमी में खुला न रखें, बच्चों से दूर रखें", price: "₹1350 / बोरी (लगभग)", availability: "उपलब्ध ✅" },
       "Urea": { name: "Urea", aliases: ["urea", "यूरिया"], crops: ["गेहूं", "धान", "मक्का", "कपास"], quantity: "20-60 किग्रा प्रति एकड़ फसल अनुसार", method: "टॉप ड्रेसिंग में 2-3 भागों में दें", precautions: "सूखी पत्तियों पर सीधे न डालें, सिंचाई के साथ उपयोग बेहतर", price: "₹266 / बोरी (लगभग)", availability: "उपलब्ध ✅" },
       "Chlorpyrifos": { name: "Chlorpyrifos", aliases: ["chlorpyrifos", "क्लोरपाइरीफॉस", "क्लोरपायरिफॉस"], crops: ["गेहूं", "धान", "सोयाबीन", "चना", "मक्का", "कपास", "उड़द", "मूंग"], quantity: "350-400 मिली प्रति एकड़", method: "ड्रेंचिंग, मिट्टी उपचार या स्प्रे", precautions: "दस्ताने पहनें, पानी के स्रोत से दूर रखें, लेबल पढ़ें", price: "₹280-350 / लीटर", availability: "स्टॉक नहीं ❌" },
@@ -1427,7 +1453,7 @@
       "Irrigation Pipe": { name: "Irrigation Pipe", aliases: ["irrigation pipe", "pipe", "पाइप", "सिंचाई पाइप"], crops: ["सभी फसलें"], quantity: "दूरी और मोटर HP अनुसार", method: "मुख्य लाइन और शाखा लाइन के अनुसार चुनें", precautions: "तेज धूप में लंबे समय तक खुला न छोड़ें", price: "साइज अनुसार अलग", availability: "1/2, 3/4 और 1 इंच उपलब्ध ✅" }
     };
 
-    const mandiPrices = {
+    let mandiPrices = {
       updatedAt: "08 मई 2026, सुबह 10:30 बजे",
       rows: [
         { crop: "गेहूं", today: 2825, yesterday: 2790 },
@@ -1460,7 +1486,7 @@
       { month: "वर्ष भर", season: "बागवानी", crops: ["प्याज", "लहसुन", "मिर्च", "टमाटर"] }
     ];
 
-    const schemesData = [
+    let schemesData = [
       { icon: "💰", name: "पीएम किसान सम्मान निधि", desc: "पात्र किसानों को हर साल ₹6000 तीन किस्तों में सीधे बैंक खाते में।", helpline: "हेल्पलाइन: 155261 / 011-24300606", link: "https://pmkisan.gov.in/" },
       { icon: "🌾", name: "प्रधानमंत्री फसल बीमा योजना", desc: "प्राकृतिक आपदा से फसल नुकसान पर बीमा सुरक्षा। कम प्रीमियम पर फसल बीमा।", helpline: "हेल्पलाइन: 1800-180-1551", link: "https://pmfby.gov.in/" },
       { icon: "🧪", name: "मृदा स्वास्थ्य कार्ड", desc: "मुफ्त मिट्टी जांच और पोषक तत्व आधारित खाद सलाह।", helpline: "कृषि विभाग से संपर्क करें", link: "https://soilhealth.dac.gov.in/" },
@@ -1469,7 +1495,7 @@
       { icon: "🛒", name: "ई-नाम (eNAM)", desc: "ऑनलाइन कृषि मंडी — बेहतर भाव के लिए फसल बेचें।", helpline: "हेल्पलाइन: 1800-270-0224", link: "https://enam.gov.in/" }
     ];
 
-    const videosData = [
+    let videosData = [
       { id: "dQw4w9WgXcQ", category: "कीटनाशक उपयोग विधि", title: "कीटनाशक को सुरक्षित तरीके से मिलाना", description: "स्प्रे टैंक में सही घोल बनाना, PPE और सावधानियां।" },
       { id: "ysz5S6PUM-U", category: "सिंचाई पाइप जोड़ने का तरीका", title: "पाइप फिटिंग और लीक रोकने की विधि", description: "फील्ड में पाइप जोड़ने और coupling लगाने का आसान तरीका।" },
       { id: "aqz-KE-bpKQ", category: "पशु चारा मिश्रण", title: "दूध देने वाले पशु के लिए संतुलित चारा", description: "हरा चारा, सूखा चारा और दाना अनुपात की जानकारी।" },
@@ -1480,13 +1506,13 @@
       { id: "ScMzIvxBSi4", category: "बीज उपचार विधि", title: "बुवाई से पहले बीज की तैयारी", description: "बीज को सुखाकर treatment करने की practical सलाह।" }
     ];
 
-    const testimonials = [
+    let testimonials = [
       { name: "रामलाल पाटीदार", village: "कायथा", rating: 5, image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=70", quote: "यहां सही सलाह मिलती है और जरूरत का सामान समय पर मिल जाता है।" },
       { name: "सावित्रीबाई चौहान", village: "नागदा रोड क्षेत्र", rating: 5, image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=70", quote: "सोयाबीन के लिए दवा और खाद दोनों एक ही जगह मिले, बहुत सुविधा रही।" },
       { name: "मोहनसिंह यादव", village: "उज्जैन ग्रामीण", rating: 4, image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=70", quote: "पाइप और मोटर वायरिंग की अच्छी रेंज है, दुकान वाले समझाकर देते हैं।" }
     ];
 
-    const forumQuestions = [
+    let forumQuestions = [
       { crop: "सोयाबीन", question: "मेरी सोयाबीन की पत्तियां पीली हो रही हैं, क्या करूं?", answer: "पहले जल निकासी देखें, फिर सूक्ष्म पोषक या जिंक आधारित स्प्रे की सलाह लें। जरूरत हो तो रोग की फोटो WhatsApp पर भेजें।" },
       { crop: "चना", question: "चना में विल्ट जैसा लग रहा है, कौन-सी दवा काम आएगी?", answer: "बीज उपचार और जड़ क्षेत्र की जांच जरूरी है। कार्बेन्डाजिम आधारित समाधान और खेत की स्थिति देखकर सलाह दी जाएगी।" },
       { crop: "गेहूं", question: "गेहूं में यूरिया कब डालना चाहिए?", answer: "सामान्यतः पहली सिंचाई के बाद और फिर आवश्यकता अनुसार टॉप ड्रेसिंग की जाती है। खेत की नमी देखकर मात्रा तय करें।" },
@@ -1495,7 +1521,7 @@
       { crop: "पशुपालन", question: "पशु चारा कौन-सा बेहतर रहेगा?", answer: "पशु के प्रकार और उपयोग के अनुसार feed बदलता है। दूध देने वाले पशु के लिए संतुलित feed पूछकर लें।" }
     ];
 
-    const licenseDetails = [
+    let licenseDetails = [
       "कीटनाशक डीलर लाइसेंस नंबर: MP-PEST-XXXXXXX",
       "उर्वरक डीलर लाइसेंस नंबर: MP-FERT-XXXXXXX",
       "GST नंबर: 23XXXXXXXXXXXXX",
@@ -1593,6 +1619,8 @@
     function populateCropInputs() {
       const cropSelect = $("cropSelect"), seedCalcCrop = $("seedCalcCrop"), symptomSelect = $("symptomSelect"), cropCards = $("cropCards");
       const cropNames = Object.keys(cropsData);
+      cropSelect.innerHTML = '<option value="">फसल का चयन करें</option>';
+      seedCalcCrop.innerHTML = "";
       cropNames.forEach((crop) => {
         cropSelect.insertAdjacentHTML("beforeend", `<option value="${esc(crop)}">${esc(crop)}</option>`);
         seedCalcCrop.insertAdjacentHTML("beforeend", `<option value="${esc(crop)}">${esc(crop)}</option>`);
@@ -1605,13 +1633,15 @@
         const info = cropsData[crop];
         return `<article class="crop-card" role="button" tabindex="0" data-crop="${esc(crop)}" aria-label="${esc(crop)} चुनें">
             <img loading="lazy" width="300" height="222" src="${esc(info.image)}" alt="${esc(crop)} की फसल" onerror="this.style.visibility='hidden'">
-            <div class="crop-card-body"><h3>${esc(crop)}</h3><p>${esc(info.seeds.slice(0, 2).join(" • "))}</p></div>
+            <div class="crop-card-body"><h3>${esc(crop)}</h3><p>${esc((info.seeds || []).slice(0, 2).join(" • "))}</p></div>
           </article>`;
       }).join("");
     }
 
     function populateProductInputs() {
       const productSelect = $("productSelect"), productDatalist = $("productDatalist");
+      productSelect.innerHTML = '<option value="">उत्पाद का चयन करें</option>';
+      productDatalist.innerHTML = "";
       Object.keys(productsData).forEach((p) => {
         productSelect.insertAdjacentHTML("beforeend", `<option value="${esc(p)}">${esc(p)}</option>`);
         productDatalist.insertAdjacentHTML("beforeend", `<option value="${esc(p)}"></option>`);
@@ -2334,60 +2364,217 @@
     }
 
     /* ====================== ADMIN PANEL ====================== */
-    function initAdmin() {
-      const overlay = $("adminOverlay"); const openBtn = $("adminOpenBtn"); const closeBtn = $("adminClose");
-      let lastFocus = null;
-      const open = () => {
-        lastFocus = document.activeElement;
-        overlay.classList.add("open");
-        const session = (function () { try { return sessionStorage.getItem(LS.admin) === "1"; } catch (e) { return false; } })();
-        showAdminState(session);
-        (session ? $("adminLogoutBtn") : $("adminPass")).focus();
+    /* ====================== ADMIN CMS ====================== */
+    let CMS_DEFAULTS = null;
+    const CMS_KEY = "snksk_cms";
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+    const SYMPTOM_KEYS = ["पत्तियां पीली हो रही हैं", "काले धब्बे", "फसल मुरझा रही है", "जड़ सड़न"];
+
+    function pickConfig() {
+      return { WEBSITE_URL: CONFIG.WEBSITE_URL, SHOP_PHONE: CONFIG.SHOP_PHONE, SHOP_PHONE_DISPLAY: CONFIG.SHOP_PHONE_DISPLAY, GOOGLE_REVIEW_URL: CONFIG.GOOGLE_REVIEW_URL, MAPS_DIRECTIONS_URL: CONFIG.MAPS_DIRECTIONS_URL };
+    }
+    function captureDefaults() {
+      if (CMS_DEFAULTS) return;
+      CMS_DEFAULTS = { config: pickConfig(), stock: clone(stockAvailability), crops: clone(cropsData), products: clone(productsData), mandi: clone(mandiPrices), schemes: clone(schemesData), videos: clone(videosData), testimonials: clone(testimonials), forum: clone(forumQuestions), license: clone(licenseDetails) };
+    }
+    function applyCmsOverrides() {
+      let s = null; try { s = JSON.parse(localStorage.getItem(CMS_KEY) || "null"); } catch (e) { s = null; }
+      if (!s) return;
+      if (s.config) Object.assign(CONFIG, s.config);
+      if (Array.isArray(s.stock)) stockAvailability = s.stock;
+      if (s.crops && typeof s.crops === "object") cropsData = s.crops;
+      if (s.products && typeof s.products === "object") productsData = s.products;
+      if (s.mandi && Array.isArray(s.mandi.rows)) mandiPrices = s.mandi;
+      if (Array.isArray(s.schemes)) schemesData = s.schemes;
+      if (Array.isArray(s.videos)) videosData = s.videos;
+      if (Array.isArray(s.testimonials)) testimonials = s.testimonials;
+      if (Array.isArray(s.forum)) forumQuestions = s.forum;
+      if (Array.isArray(s.license)) licenseDetails = s.license;
+    }
+    function saveCms() {
+      try {
+        localStorage.setItem(CMS_KEY, JSON.stringify({ config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails }));
+      } catch (e) { toast("सेव नहीं हुआ — स्टोरेज भरा हो सकता है", "error"); }
+    }
+    function reRenderContent() {
+      populateStockTicker(); populateCropInputs(); populateProductInputs();
+      renderMandiTable(); renderSchemes(); renderVideos(); renderTestimonials();
+      renderLicenseDetails(); renderForum(); renderContactDetails(); initQrCode(); renderPopular();
+      const fc = Object.keys(cropsData)[0]; if (fc) renderCropResult(fc);
+      const fp = Object.keys(productsData)[0]; if (fp) renderProductResult(fp);
+    }
+
+    function cmsInput(f, val) {
+      const id = "cf_" + f.k; let inner;
+      if (f.type === "textarea") inner = `<textarea id="${id}" rows="2">${esc(val == null ? "" : val)}</textarea>`;
+      else if (f.type === "list") inner = `<textarea id="${id}" rows="3" placeholder="हर लाइन में एक">${esc(Array.isArray(val) ? val.join("\n") : "")}</textarea>`;
+      else if (f.type === "select") inner = `<select id="${id}">${f.opts.map((o) => `<option ${o === val ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+      else inner = `<input id="${id}" type="${f.type === "num" ? "number" : "text"}" value="${esc(val == null ? "" : String(val))}">`;
+      return `<div class="field"><label for="${id}">${esc(f.label)}</label>${inner}</div>`;
+    }
+    function readField(f) {
+      const el = $("cf_" + f.k); if (!el) return f.type === "list" ? [] : "";
+      if (f.type === "list") return el.value.split("\n").map((s) => s.trim()).filter(Boolean);
+      if (f.type === "num") return Number(el.value) || 0;
+      return el.value.trim();
+    }
+    function readListById(id) { const el = $(id); return el ? el.value.split("\n").map((s) => s.trim()).filter(Boolean) : []; }
+
+    function cmsList(host, spec) {
+      const arr = spec.get();
+      let html = `<button class="cms-btn add" type="button" id="cmsAdd">➕ नया जोड़ें</button>`;
+      if (!arr.length) html += `<p class="muted">अभी कोई प्रविष्टि नहीं।</p>`;
+      html += arr.map((r, i) => `<div class="cms-item"><div class="ci-main"><div class="ci-name">${esc(spec.primary(r))}</div><div class="ci-sub">${esc(spec.secondary ? spec.secondary(r) : "")}</div></div><div class="cms-actions"><button class="cms-btn edit" type="button" data-i="${i}" aria-label="संपादित करें">✏️</button><button class="cms-btn del" type="button" data-i="${i}" aria-label="हटाएं">🗑️</button></div></div>`).join("");
+      host.innerHTML = html;
+      $("cmsAdd").addEventListener("click", () => (spec.form || cmsForm)(host, spec, -1));
+      host.querySelectorAll(".cms-btn.edit").forEach((b) => b.addEventListener("click", () => (spec.form || cmsForm)(host, spec, Number(b.dataset.i))));
+      host.querySelectorAll(".cms-btn.del").forEach((b) => b.addEventListener("click", () => {
+        if (!window.confirm("क्या आप इसे हटाना चाहते हैं?")) return;
+        const a = spec.get(); a.splice(Number(b.dataset.i), 1); spec.set(a); saveCms(); reRenderContent(); cmsList(host, spec); toast("हटा दिया", "info");
+      }));
+    }
+    function cmsForm(host, spec, idx) {
+      const arr = spec.get(); const rec = idx >= 0 ? arr[idx] : {};
+      let html = '<div class="cms-form">' + spec.fields.map((f) => cmsInput(f, rec[f.k])).join("");
+      html += `<div class="cms-form-actions"><button class="cms-btn add" type="button" id="cmsSave">सेव करें</button><button class="cms-btn" type="button" id="cmsCancel" style="background:var(--line);color:var(--text)">रद्द करें</button></div></div>`;
+      host.innerHTML = html;
+      $("cmsCancel").addEventListener("click", () => cmsList(host, spec));
+      $("cmsSave").addEventListener("click", () => {
+        const nr = Object.assign({}, rec); let ok = true;
+        spec.fields.forEach((f) => { const v = readField(f); if (f.req && (v === "" || (Array.isArray(v) && !v.length))) ok = false; nr[f.k] = v; });
+        if (!ok) { toast("कृपया जरूरी फील्ड भरें", "error"); return; }
+        if (idx >= 0) arr[idx] = nr; else arr.push(nr);
+        spec.set(arr); saveCms(); reRenderContent(); cmsList(host, spec); toast("सेव हो गया ✅", "success");
+      });
+    }
+    function cmsStringList(host, getArr, setArr, label) {
+      host.innerHTML = `<div class="cms-form"><div class="field"><label for="cmsSL">${esc(label)} (हर लाइन में एक)</label><textarea id="cmsSL" rows="8">${esc(getArr().join("\n"))}</textarea></div><div class="cms-form-actions"><button class="cms-btn add" type="button" id="cmsSLsave">सेव करें</button></div></div>`;
+      $("cmsSLsave").addEventListener("click", () => { setArr($("cmsSL").value.split("\n").map((s) => s.trim()).filter(Boolean)); saveCms(); reRenderContent(); toast("सेव हो गया ✅", "success"); });
+    }
+    function objToList(obj) { return Object.keys(obj).map((k) => { const r = clone(obj[k]); r.name = r.name || k; return r; }); }
+    function listToObj(list) { const o = {}; list.forEach((r) => { if (r.name) o[r.name] = r; }); return o; }
+
+    function cropForm(host, spec, idx) {
+      const arr = spec.get(); const rec = idx >= 0 ? arr[idx] : { symptoms: {} };
+      const sc = rec.seedCostRangePerKg || [];
+      let html = '<div class="cms-form">';
+      html += cmsInput({ k: "name", label: "फसल का नाम" }, rec.name);
+      html += cmsInput({ k: "image", label: "फोटो URL" }, rec.image);
+      html += cmsInput({ k: "seeds", label: "बीज किस्में", type: "list" }, rec.seeds);
+      html += cmsInput({ k: "fertilizer", label: "उर्वरक सुझाव", type: "list" }, rec.fertilizer);
+      html += cmsInput({ k: "pesticides", label: "कीटनाशक सुझाव", type: "list" }, rec.pesticides);
+      html += cmsInput({ k: "irrigation", label: "सिंचाई सुझाव" }, rec.irrigation);
+      html += cmsInput({ k: "srate", label: "बीज दर (किग्रा/एकड़)", type: "num" }, rec.seedRatePerAcre);
+      html += cmsInput({ k: "scmin", label: "बीज मूल्य न्यूनतम (₹/किग्रा)", type: "num" }, sc[0]);
+      html += cmsInput({ k: "scmax", label: "बीज मूल्य अधिकतम (₹/किग्रा)", type: "num" }, sc[1]);
+      html += '<div class="admin-section-title">रोग पहचान (लक्षण → उपाय)</div>';
+      SYMPTOM_KEYS.forEach((sk, si) => { const sd = (rec.symptoms && rec.symptoms[sk]) || {};
+        html += `<div class="cms-sym"><h5>${esc(sk)}</h5>` + cmsInput({ k: "s" + si + "d", label: "संभावित रोग" }, sd.disease) + cmsInput({ k: "s" + si + "r", label: "उपाय/दवा" }, sd.remedy) + cmsInput({ k: "s" + si + "m", label: "मात्रा" }, sd.dosage) + "</div>";
+      });
+      html += `<div class="cms-form-actions"><button class="cms-btn add" type="button" id="cmsSave">सेव करें</button><button class="cms-btn" type="button" id="cmsCancel" style="background:var(--line);color:var(--text)">रद्द करें</button></div></div>`;
+      host.innerHTML = html;
+      $("cmsCancel").addEventListener("click", () => cmsList(host, spec));
+      $("cmsSave").addEventListener("click", () => {
+        const name = $("cf_name").value.trim(); if (!name) { toast("फसल का नाम जरूरी है", "error"); return; }
+        const nr = { name: name, image: $("cf_image").value.trim(), seeds: readListById("cf_seeds"), fertilizer: readListById("cf_fertilizer"), pesticides: readListById("cf_pesticides"), irrigation: $("cf_irrigation").value.trim(), seedRatePerAcre: Number($("cf_srate").value) || 0, seedCostRangePerKg: [Number($("cf_scmin").value) || 0, Number($("cf_scmax").value) || 0], symptoms: {} };
+        SYMPTOM_KEYS.forEach((sk, si) => { const d = $("cf_s" + si + "d").value.trim(); if (d) nr.symptoms[sk] = { disease: d, remedy: $("cf_s" + si + "r").value.trim(), dosage: $("cf_s" + si + "m").value.trim() }; });
+        if (idx >= 0) arr[idx] = nr; else arr.push(nr);
+        spec.set(arr); saveCms(); reRenderContent(); cmsList(host, spec); toast("फसल सेव हो गई ✅", "success");
+      });
+    }
+
+    function adminRenderTab(tab) {
+      const host = $("adminTabBody"); if (!host) return;
+      if (tab === "features") return renderFeaturesTab(host);
+      if (tab === "shop") return renderShopTab(host);
+      if (tab === "backup") return renderBackupTab(host);
+      if (tab === "stock") return cmsStringList(host, () => stockAvailability, (a) => { stockAvailability = a; }, "स्टॉक सूचना");
+      if (tab === "license") return cmsStringList(host, () => licenseDetails, (a) => { licenseDetails = a; }, "लाइसेंस विवरण");
+      if (tab === "mandi") return renderMandiTab(host);
+      const specs = {
+        crops: { get: () => objToList(cropsData), set: (l) => { cropsData = listToObj(l); }, form: cropForm, primary: (r) => r.name, secondary: (r) => (r.seeds || []).slice(0, 2).join(" • ") },
+        products: { get: () => objToList(productsData), set: (l) => { productsData = listToObj(l); }, primary: (r) => r.name, secondary: (r) => r.availability || "", fields: [{ k: "name", label: "नाम", req: true }, { k: "availability", label: "उपलब्धता", type: "select", opts: ["उपलब्ध ✅", "स्टॉक नहीं ❌"] }, { k: "price", label: "मूल्य" }, { k: "quantity", label: "मात्रा प्रति एकड़" }, { k: "method", label: "उपयोग विधि", type: "textarea" }, { k: "precautions", label: "सावधानियां", type: "textarea" }, { k: "crops", label: "किन फसलों में", type: "list" }, { k: "aliases", label: "अन्य नाम (search के लिए)", type: "list" }] },
+        videos: { get: () => videosData, set: (l) => { videosData = l; }, primary: (r) => r.title, secondary: (r) => r.category, fields: [{ k: "title", label: "शीर्षक", req: true }, { k: "id", label: "YouTube वीडियो ID (11 अक्षर)", req: true }, { k: "category", label: "श्रेणी" }, { k: "description", label: "विवरण", type: "textarea" }] },
+        testimonials: { get: () => testimonials, set: (l) => { testimonials = l; }, primary: (r) => r.name, secondary: (r) => r.village, fields: [{ k: "name", label: "नाम", req: true }, { k: "village", label: "गांव" }, { k: "rating", label: "रेटिंग (1-5)", type: "num" }, { k: "image", label: "फोटो URL" }, { k: "quote", label: "समीक्षा", type: "textarea" }] },
+        schemes: { get: () => schemesData, set: (l) => { schemesData = l; }, primary: (r) => r.name, secondary: (r) => r.helpline, fields: [{ k: "icon", label: "आइकन (इमोजी)" }, { k: "name", label: "योजना का नाम", req: true }, { k: "desc", label: "विवरण", type: "textarea" }, { k: "helpline", label: "हेल्पलाइन" }, { k: "link", label: "आधिकारिक लिंक" }] },
+        forum: { get: () => forumQuestions, set: (l) => { forumQuestions = l; }, primary: (r) => r.question, secondary: (r) => r.crop, fields: [{ k: "crop", label: "फसल/विषय" }, { k: "question", label: "सवाल", type: "textarea", req: true }, { k: "answer", label: "जवाब", type: "textarea" }] }
       };
+      if (specs[tab]) cmsList(host, specs[tab]);
+    }
+    function renderFeaturesTab(host) {
+      host.innerHTML = `<div class="admin-section-title">सेक्शन चालू / बंद करें</div><div id="adminToggles"></div>
+        <div class="admin-section-title">छुट्टी सूचना</div>
+        <div class="field"><input id="adminHoliday" type="text" placeholder="जैसे: आज दोपहर 2 बजे तक बंद"></div>
+        <div class="cms-form-actions"><button class="cms-btn add" type="button" id="featSave">सेव करें</button></div>`;
+      $("adminToggles").innerHTML = featureList.map((f) => `<div class="admin-toggle-row"><label for="ftoggle_${f.key}">${esc(f.label)}</label><span class="switch"><input type="checkbox" id="ftoggle_${f.key}" ${featureState[f.key] ? "checked" : ""}><span class="slider"></span></span></div>`).join("");
+      try { $("adminHoliday").value = localStorage.getItem(LS.holiday) || ""; } catch (e) {}
+      $("featSave").addEventListener("click", () => {
+        featureList.forEach((f) => { const cb = $("ftoggle_" + f.key); if (cb) featureState[f.key] = cb.checked; });
+        saveFeatureState(); applyFeatureState();
+        try { localStorage.setItem(LS.holiday, $("adminHoliday").value.trim()); } catch (e) {}
+        updateShopStatus(); toast("सेटिंग्स सेव हो गईं ✅", "success");
+      });
+    }
+    function renderShopTab(host) {
+      const f = [{ k: "WEBSITE_URL", label: "वेबसाइट URL" }, { k: "SHOP_PHONE", label: "WhatsApp नंबर (91 सहित, जैसे 919876543210)" }, { k: "SHOP_PHONE_DISPLAY", label: "दिखने वाला फोन नंबर" }, { k: "GOOGLE_REVIEW_URL", label: "Google Review लिंक" }, { k: "MAPS_DIRECTIONS_URL", label: "नक्शा/दिशा लिंक" }];
+      host.innerHTML = '<div class="cms-form">' + f.map((x) => cmsInput({ k: x.k, label: x.label }, CONFIG[x.k])).join("") + `<div class="cms-form-actions"><button class="cms-btn add" type="button" id="shopSave">सेव करें</button></div></div>`;
+      $("shopSave").addEventListener("click", () => {
+        f.forEach((x) => { const el = $("cf_" + x.k); if (el) CONFIG[x.k] = el.value.trim(); });
+        saveCms(); renderContactDetails(); initQrCode(); updateShopStatus(); toast("दुकान जानकारी सेव हो गई ✅", "success");
+      });
+    }
+    function renderMandiTab(host) {
+      const spec = { get: () => mandiPrices.rows, set: (l) => { mandiPrices.rows = l; }, primary: (r) => r.crop, secondary: (r) => `आज ₹${r.today} · कल ₹${r.yesterday}`, fields: [{ k: "crop", label: "फसल", req: true }, { k: "today", label: "आज का भाव (₹/क्विंटल)", type: "num" }, { k: "yesterday", label: "कल का भाव", type: "num" }] };
+      host.innerHTML = `<div class="field"><label for="mandiDate">भाव अपडेट तारीख</label><input id="mandiDate" type="text" value="${esc(mandiPrices.updatedAt)}"></div><div class="cms-form-actions" style="margin-bottom:0.8rem;"><button class="cms-btn add" type="button" id="mandiDateSave">तारीख सेव करें</button></div><div id="mandiRows"></div>`;
+      $("mandiDateSave").addEventListener("click", () => { mandiPrices.updatedAt = $("mandiDate").value.trim(); saveCms(); renderMandiTable(); toast("तारीख सेव हुई", "success"); });
+      cmsList($("mandiRows"), spec);
+    }
+    function renderBackupTab(host) {
+      host.innerHTML = `<p class="muted">अपनी सारी सेटिंग्स का बैकअप लें या वापस लाएं।</p>
+        <div class="cms-form-actions" style="flex-wrap:wrap;">
+          <button class="cms-btn add" type="button" id="cmsExport">⬇️ बैकअप डाउनलोड</button>
+          <button class="cms-btn edit" type="button" id="cmsImportBtn">⬆️ बैकअप वापस लाएं</button>
+          <button class="cms-btn del" type="button" id="cmsResetAll">♻️ सब रीसेट</button>
+        </div>
+        <div class="field" style="margin-top:0.8rem;"><label for="cmsImport">बैकअप JSON पेस्ट करें (वापस लाने के लिए)</label><textarea id="cmsImport" rows="4" placeholder='{ ... }'></textarea></div>`;
+      $("cmsExport").addEventListener("click", () => {
+        const data = localStorage.getItem(CMS_KEY) || JSON.stringify({ config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails });
+        try { const blob = new Blob([data], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "krishi-seva-settings.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); toast("बैकअप डाउनलोड हुआ", "success"); } catch (e) { toast("डाउनलोड नहीं हुआ", "error"); }
+      });
+      $("cmsImportBtn").addEventListener("click", () => {
+        const txt = $("cmsImport").value.trim(); if (!txt) { toast("कृपया JSON पेस्ट करें", "warn"); return; }
+        try { const obj = JSON.parse(txt); localStorage.setItem(CMS_KEY, JSON.stringify(obj)); applyCmsOverrides(); reRenderContent(); toast("बैकअप वापस आ गया ✅", "success"); adminRenderTab("backup"); } catch (e) { toast("गलत JSON", "error"); }
+      });
+      $("cmsResetAll").addEventListener("click", () => {
+        if (!window.confirm("सारी सेटिंग्स डिफ़ॉल्ट पर लौटाएं?")) return;
+        try { localStorage.removeItem(CMS_KEY); } catch (e) {}
+        if (CMS_DEFAULTS) { Object.assign(CONFIG, CMS_DEFAULTS.config); stockAvailability = clone(CMS_DEFAULTS.stock); cropsData = clone(CMS_DEFAULTS.crops); productsData = clone(CMS_DEFAULTS.products); mandiPrices = clone(CMS_DEFAULTS.mandi); schemesData = clone(CMS_DEFAULTS.schemes); videosData = clone(CMS_DEFAULTS.videos); testimonials = clone(CMS_DEFAULTS.testimonials); forumQuestions = clone(CMS_DEFAULTS.forum); licenseDetails = clone(CMS_DEFAULTS.license); }
+        reRenderContent(); toast("सब रीसेट हो गया", "info");
+      });
+    }
+
+    function initAdmin() {
+      const overlay = $("adminOverlay"), openBtn = $("adminOpenBtn"), closeBtn = $("adminClose");
+      let lastFocus = null;
+      const open = () => { lastFocus = document.activeElement; overlay.classList.add("open"); const session = (function () { try { return sessionStorage.getItem(LS.admin) === "1"; } catch (e) { return false; } })(); showAdminState(session); (session ? $("adminLogoutBtn") : $("adminPass")).focus(); };
       const close = () => { overlay.classList.remove("open"); if (lastFocus) lastFocus.focus(); };
       if (openBtn) openBtn.addEventListener("click", open);
       if (closeBtn) closeBtn.addEventListener("click", close);
       overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
       document.addEventListener("keydown", (e) => { if (e.key === "Escape" && overlay.classList.contains("open")) close(); });
-
       $("adminLoginBtn").addEventListener("click", () => {
-        const val = $("adminPass").value;
-        if (val === CONFIG.ADMIN_PASSCODE) {
-          try { sessionStorage.setItem(LS.admin, "1"); } catch (e) {}
-          safeText($("adminPassErr"), ""); $("adminPass").value = "";
-          showAdminState(true); toast("लॉगिन सफल", "success");
-        } else { safeText($("adminPassErr"), "गलत पासकोड।"); toast("गलत पासकोड", "error"); }
+        if ($("adminPass").value === CONFIG.ADMIN_PASSCODE) { try { sessionStorage.setItem(LS.admin, "1"); } catch (e) {} safeText($("adminPassErr"), ""); $("adminPass").value = ""; showAdminState(true); toast("लॉगिन सफल", "success"); }
+        else { safeText($("adminPassErr"), "गलत पासकोड।"); toast("गलत पासकोड", "error"); }
       });
       $("adminPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("adminLoginBtn").click(); });
-
       $("adminLogoutBtn").addEventListener("click", () => { try { sessionStorage.removeItem(LS.admin); } catch (e) {} showAdminState(false); toast("लॉगआउट हुआ", "info"); });
-
-      $("adminSaveBtn").addEventListener("click", () => {
-        featureList.forEach((f) => { const cb = $("ftoggle_" + f.key); if (cb) featureState[f.key] = cb.checked; });
-        saveFeatureState(); applyFeatureState();
-        const holiday = $("adminHoliday").value.trim();
-        try { localStorage.setItem(LS.holiday, holiday); } catch (e) {}
-        updateShopStatus();
-        toast("सेटिंग्स सेव हो गईं ✅", "success");
-      });
-      $("adminResetBtn").addEventListener("click", () => {
-        try { localStorage.removeItem(LS.features); localStorage.removeItem(LS.holiday); } catch (e) {}
-        loadFeatureState(); buildAdminToggles(); $("adminHoliday").value = ""; updateShopStatus();
-        toast("सेटिंग्स रीसेट हो गईं", "info");
-      });
+      const tabs = $("adminTabs");
+      if (tabs) tabs.addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (!b) return; tabs.querySelectorAll("button").forEach((x) => x.classList.toggle("active", x === b)); adminRenderTab(b.dataset.tab); });
     }
     function showAdminState(loggedIn) {
       $("adminLoginArea").classList.toggle("hidden", loggedIn);
       $("adminPanelArea").classList.toggle("hidden", !loggedIn);
-      if (loggedIn) { buildAdminToggles(); try { $("adminHoliday").value = localStorage.getItem(LS.holiday) || ""; } catch (e) {} }
-    }
-    function buildAdminToggles() {
-      const wrap = $("adminToggles"); if (!wrap) return;
-      wrap.innerHTML = featureList.map((f) => `
-        <div class="admin-toggle-row">
-          <label for="ftoggle_${f.key}">${esc(f.label)}</label>
-          <span class="switch"><input type="checkbox" id="ftoggle_${f.key}" ${featureState[f.key] ? "checked" : ""}><span class="slider"></span></span>
-        </div>`).join("");
+      if (loggedIn) { const tabs = $("adminTabs"); if (tabs) tabs.querySelectorAll("button").forEach((x, i) => x.classList.toggle("active", i === 0)); adminRenderTab("features"); }
     }
 
     /* ====================== NAVIGATION ====================== */
@@ -2470,6 +2657,8 @@
       if (pageInitialized) return; // guard against double initialization
       pageInitialized = true;
       try {
+        captureDefaults();
+        applyCmsOverrides();
         initTheme();
         initFontToggle();
         populateStockTicker();
