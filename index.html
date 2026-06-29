@@ -1300,7 +1300,11 @@
       HOLIDAY_NOTICE: "",
       SHOP_OPEN_HOUR: 9,
       SHOP_CLOSE_HOUR: 19,
-      ADMIN_PASSCODE: "krishi@123"
+      ADMIN_PASSCODE: "krishi@123",
+      // Live cloud publishing (jsonbin.io). Bake binId + readKey here so ALL visitors
+      // read the owner's published data. Master key is entered in the admin panel
+      // (stored only in the owner's browser) and is never placed in this file.
+      CLOUD: { binId: "", readKey: "" }
     };
 
     /* ====================== DATA ====================== */
@@ -2377,9 +2381,8 @@
       if (CMS_DEFAULTS) return;
       CMS_DEFAULTS = { config: pickConfig(), stock: clone(stockAvailability), crops: clone(cropsData), products: clone(productsData), mandi: clone(mandiPrices), schemes: clone(schemesData), videos: clone(videosData), testimonials: clone(testimonials), forum: clone(forumQuestions), license: clone(licenseDetails) };
     }
-    function applyCmsOverrides() {
-      let s = null; try { s = JSON.parse(localStorage.getItem(CMS_KEY) || "null"); } catch (e) { s = null; }
-      if (!s) return;
+    function applyData(s) {
+      if (!s || typeof s !== "object") return;
       if (s.config) Object.assign(CONFIG, s.config);
       if (Array.isArray(s.stock)) stockAvailability = s.stock;
       if (s.crops && typeof s.crops === "object") cropsData = s.crops;
@@ -2391,10 +2394,48 @@
       if (Array.isArray(s.forum)) forumQuestions = s.forum;
       if (Array.isArray(s.license)) licenseDetails = s.license;
     }
+    function collectSettings() {
+      return { config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails };
+    }
+    function applyCmsOverrides() {
+      let s = null; try { s = JSON.parse(localStorage.getItem(CMS_KEY) || "null"); } catch (e) { s = null; }
+      if (s) applyData(s);
+    }
     function saveCms() {
-      try {
-        localStorage.setItem(CMS_KEY, JSON.stringify({ config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails }));
-      } catch (e) { toast("सेव नहीं हुआ — स्टोरेज भरा हो सकता है", "error"); }
+      try { localStorage.setItem(CMS_KEY, JSON.stringify(collectSettings())); }
+      catch (e) { toast("सेव नहीं हुआ — स्टोरेज भरा हो सकता है", "error"); }
+    }
+
+    /* ---- Cloud (jsonbin) live publishing ---- */
+    const CLOUD_KEY = "snksk_cloud";
+    function getCloudCfg() { try { return JSON.parse(localStorage.getItem(CLOUD_KEY) || "{}"); } catch (e) { return {}; } }
+    function setCloudCfg(o) { try { localStorage.setItem(CLOUD_KEY, JSON.stringify(o)); } catch (e) {} }
+    function loadCloudCfg() {
+      const c = getCloudCfg(); CONFIG.CLOUD = CONFIG.CLOUD || { binId: "", readKey: "" };
+      if (c.binId) CONFIG.CLOUD.binId = c.binId;
+      if (c.readKey) CONFIG.CLOUD.readKey = c.readKey;
+    }
+    function cloudLoad() {
+      const c = CONFIG.CLOUD || {};
+      if (!c.binId || !c.readKey || typeof fetch !== "function") return;
+      fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(c.binId) + "/latest?meta=false", { headers: { "X-Access-Key": c.readKey } })
+        .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+        .then((d) => { applyData(d); reRenderContent(); })
+        .catch(() => { /* keep local/defaults if cloud unavailable */ });
+    }
+    function cloudPublish() {
+      const cfg = getCloudCfg();
+      if (!cfg.binId || !cfg.masterKey) { toast("पहले Bin ID और Master Key भरें", "warn"); return; }
+      toast("प्रकाशित किया जा रहा है…", "info", 1500);
+      fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(cfg.binId), { method: "PUT", headers: { "Content-Type": "application/json", "X-Master-Key": cfg.masterKey }, body: JSON.stringify(collectSettings()) })
+        .then((r) => r.ok ? r.json() : Promise.reject()).then(() => toast("सभी के लिए प्रकाशित हो गया 🌍✅", "success")).catch(() => toast("प्रकाशन विफल — Bin ID / Master Key जांचें", "error"));
+    }
+    function cloudCreateBin() {
+      const cfg = getCloudCfg();
+      if (!cfg.masterKey) { toast("पहले Master Key भरें", "warn"); return; }
+      toast("Bin बनाया जा रहा है…", "info", 1500);
+      fetch("https://api.jsonbin.io/v3/b", { method: "POST", headers: { "Content-Type": "application/json", "X-Master-Key": cfg.masterKey, "X-Bin-Name": "krishi-seva-kendra", "X-Bin-Private": "false" }, body: JSON.stringify(collectSettings()) })
+        .then((r) => r.ok ? r.json() : Promise.reject()).then((d) => { const id = d && d.metadata && d.metadata.id; if (id) { cfg.binId = id; setCloudCfg(cfg); const el = $("cloudBinId"); if (el) el.value = id; toast("नया Bin बना ✅ — ID सेव हो गई", "success"); } else toast("Bin ID नहीं मिली", "error"); }).catch(() => toast("Bin नहीं बना — Master Key जांचें", "error"));
     }
     function reRenderContent() {
       populateStockTicker(); populateCropInputs(); populateProductInputs();
@@ -2530,15 +2571,37 @@
       cmsList($("mandiRows"), spec);
     }
     function renderBackupTab(host) {
-      host.innerHTML = `<p class="muted">अपनी सारी सेटिंग्स का बैकअप लें या वापस लाएं।</p>
+      const cfg = getCloudCfg();
+      host.innerHTML = `
+        <div class="admin-section-title">🌍 ऑनलाइन प्रकाशन (सभी किसानों के लिए लाइव)</div>
+        <p class="muted" style="font-size:0.85rem;">एक बार सेटअप करें। फिर "प्रकाशित करें" दबाते ही आपके बदलाव सभी विज़िटर को दिखेंगे — दोबारा वेबसाइट बनाने की जरूरत नहीं।</p>
+        <div class="cms-form">
+          <div class="field"><label for="cloudBinId">Bin ID</label><input id="cloudBinId" type="text" value="${esc(cfg.binId || "")}" placeholder="jsonbin से मिली Bin ID"></div>
+          <div class="field"><label for="cloudMasterKey">Master Key (केवल आपके फोन में सेव)</label><input id="cloudMasterKey" type="password" value="${esc(cfg.masterKey || "")}" placeholder="X-Master-Key"></div>
+          <div class="field"><label for="cloudReadKey">Read Access Key</label><input id="cloudReadKey" type="text" value="${esc(cfg.readKey || "")}" placeholder="read-only Access Key"></div>
+          <div class="cms-form-actions" style="flex-wrap:wrap;">
+            <button class="cms-btn add" type="button" id="cloudPublishBtn">🌍 प्रकाशित करें</button>
+            <button class="cms-btn edit" type="button" id="cloudCreateBtn">🆕 नया Bin बनाएं</button>
+            <button class="cms-btn edit" type="button" id="cloudFetchBtn">⬇️ ऑनलाइन से लाएं</button>
+          </div>
+          <p class="muted" style="font-size:0.8rem;">jsonbin.io पर मुफ्त खाता बनाएं → API Keys से Master Key व एक Read Access Key लें। Bin ID व Read Key मुझे एक बार दें ताकि सभी विज़िटर लाइव डेटा देखें।</p>
+        </div>
+        <div class="admin-section-title">💾 बैकअप फ़ाइल</div>
         <div class="cms-form-actions" style="flex-wrap:wrap;">
           <button class="cms-btn add" type="button" id="cmsExport">⬇️ बैकअप डाउनलोड</button>
           <button class="cms-btn edit" type="button" id="cmsImportBtn">⬆️ बैकअप वापस लाएं</button>
           <button class="cms-btn del" type="button" id="cmsResetAll">♻️ सब रीसेट</button>
         </div>
-        <div class="field" style="margin-top:0.8rem;"><label for="cmsImport">बैकअप JSON पेस्ट करें (वापस लाने के लिए)</label><textarea id="cmsImport" rows="4" placeholder='{ ... }'></textarea></div>`;
+        <div class="field" style="margin-top:0.8rem;"><label for="cmsImport">बैकअप JSON पेस्ट करें (वापस लाने के लिए)</label><textarea id="cmsImport" rows="3" placeholder='{ ... }'></textarea></div>`;
+
+      const saveCloudInputs = () => { const c = getCloudCfg(); c.binId = $("cloudBinId").value.trim(); c.masterKey = $("cloudMasterKey").value.trim(); c.readKey = $("cloudReadKey").value.trim(); setCloudCfg(c); CONFIG.CLOUD = { binId: c.binId, readKey: c.readKey }; };
+      ["cloudBinId", "cloudMasterKey", "cloudReadKey"].forEach((id) => $(id).addEventListener("change", saveCloudInputs));
+      $("cloudPublishBtn").addEventListener("click", () => { saveCloudInputs(); cloudPublish(); });
+      $("cloudCreateBtn").addEventListener("click", () => { saveCloudInputs(); cloudCreateBin(); });
+      $("cloudFetchBtn").addEventListener("click", () => { saveCloudInputs(); cloudLoad(); toast("ऑनलाइन डेटा लाया जा रहा है…", "info", 1500); });
+
       $("cmsExport").addEventListener("click", () => {
-        const data = localStorage.getItem(CMS_KEY) || JSON.stringify({ config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails });
+        const data = JSON.stringify(collectSettings());
         try { const blob = new Blob([data], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "krishi-seva-settings.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); toast("बैकअप डाउनलोड हुआ", "success"); } catch (e) { toast("डाउनलोड नहीं हुआ", "error"); }
       });
       $("cmsImportBtn").addEventListener("click", () => {
@@ -2659,6 +2722,7 @@
       try {
         captureDefaults();
         applyCmsOverrides();
+        loadCloudCfg();
         initTheme();
         initFontToggle();
         populateStockTicker();
@@ -2686,6 +2750,7 @@
         initEvents();
         renderCropResult("गेहूं");
         renderProductResult("DAP");
+        cloudLoad();
         hideSplash();
       } catch (err) {
         // graceful: make sure splash never traps the user
