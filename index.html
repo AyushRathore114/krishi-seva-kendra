@@ -85,10 +85,9 @@
       --line: rgba(45, 106, 79, 0.16);
       --card: rgba(255, 255, 255, 0.92);
       --surface: #faf7f0;
-      --bg-grad: radial-gradient(circle at top right, rgba(244, 163, 0, 0.12), transparent 32%),
-        linear-gradient(180deg, #f4f0e5 0%, #faf7f0 28%, #f7f3eb 100%);
-      --shadow: 0 16px 40px rgba(33, 52, 40, 0.12);
-      --shadow-sm: 0 8px 24px rgba(45, 106, 79, 0.12);
+      --bg-grad: linear-gradient(180deg, #fcfbf7 0%, #f7f5ef 100%);
+      --shadow: 0 10px 28px rgba(33, 52, 40, 0.08);
+      --shadow-sm: 0 4px 14px rgba(45, 106, 79, 0.08);
       --radius: 22px;
       --radius-sm: 16px;
       --container: 1180px;
@@ -119,7 +118,6 @@
       font-family: "Hind", sans-serif;
       color: var(--text);
       background: var(--bg-grad);
-      background-attachment: fixed;
       transition: background 0.4s ease, color 0.3s ease;
     }
     img { max-width: 100%; display: block; }
@@ -304,7 +302,7 @@
     /* ===== Sections ===== */
     main section { padding: 3.4rem 0; scroll-margin-top: 80px; }
     .section-head { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .section-kicker { color: var(--brown); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; font-weight: 700; }
+    .section-kicker { display: none; }
     .section-head h2 { font-family: "Tiro Devanagari Hindi", serif; font-size: clamp(1.7rem, 4vw, 2.6rem); color: var(--green-deep); }
     .section-head p { margin: 0; max-width: 44rem; color: var(--muted); }
 
@@ -2280,8 +2278,10 @@
       try { localStorage.setItem(LS.theme, theme); } catch (e) {}
     }
     function initTheme() {
+      // Always default to the clean light theme. Only use dark if the owner/user
+      // explicitly chose it before (never auto-follow the phone's dark mode).
       let theme = "light";
-      try { theme = localStorage.getItem(LS.theme) || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+      try { const saved = localStorage.getItem(LS.theme); if (saved === "dark" || saved === "light") theme = saved; } catch (e) {}
       applyTheme(theme);
       const btn = $("themeToggle");
       if (btn) btn.addEventListener("click", () => applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"));
