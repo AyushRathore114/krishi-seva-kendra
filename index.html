@@ -1304,7 +1304,7 @@
       // Live cloud publishing (jsonbin.io). Bake binId + readKey here so ALL visitors
       // read the owner's published data. Master key is entered in the admin panel
       // (stored only in the owner's browser) and is never placed in this file.
-      CLOUD: { binId: "", readKey: "" }
+      CLOUD: { binId: "6a422bfeda38895dfe0ec5d3", readKey: "" }
     };
 
     /* ====================== DATA ====================== */
@@ -2417,8 +2417,9 @@
     }
     function cloudLoad() {
       const c = CONFIG.CLOUD || {};
-      if (!c.binId || !c.readKey || typeof fetch !== "function") return;
-      fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(c.binId) + "/latest?meta=false", { headers: { "X-Access-Key": c.readKey } })
+      if (!c.binId || typeof fetch !== "function") return;
+      const headers = {}; if (c.readKey) headers["X-Access-Key"] = c.readKey;
+      fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(c.binId) + "/latest?meta=false", { headers: headers })
         .then((r) => r.ok ? r.json() : Promise.reject(r.status))
         .then((d) => { applyData(d); reRenderContent(); })
         .catch(() => { /* keep local/defaults if cloud unavailable */ });
