@@ -1020,7 +1020,7 @@
       </div>
     </section>
 
-    <section id="share" class="reveal no-print">
+    <section id="share" class="reveal no-print" data-feature="share">
       <div class="container">
         <div class="section-head">
           <span class="section-kicker">QR & Share</span>
@@ -1078,7 +1078,7 @@
       </div>
     </section>
 
-    <section id="license" class="reveal">
+    <section id="license" class="reveal" data-feature="license">
       <div class="container">
         <div class="section-head">
           <span class="section-kicker">Legal Trust</span>
@@ -1111,7 +1111,7 @@
       </div>
     </section>
 
-    <section id="contact" class="reveal">
+    <section id="contact" class="reveal" data-feature="contact">
       <div class="container">
         <div class="section-head">
           <span class="section-kicker">Contact</span>
@@ -1560,7 +1560,10 @@
       { key: "soil", label: "मिट्टी परीक्षण" },
       { key: "videos", label: "वीडियो गाइड" },
       { key: "reviews", label: "समीक्षाएं / नक्शा" },
-      { key: "forum", label: "किसान मंच" }
+      { key: "forum", label: "किसान मंच" },
+      { key: "share", label: "QR व शेयर" },
+      { key: "license", label: "लाइसेंस" },
+      { key: "contact", label: "संपर्क" }
     ];
 
     const LS = {
@@ -2014,9 +2017,9 @@
       { id: "videos", icon: "🎬", label: "वीडियो गाइड", feature: "videos" },
       { id: "forum", icon: "💬", label: "किसान मंच", feature: "forum" },
       { id: "reviews", icon: "⭐", label: "समीक्षा व नक्शा", feature: "reviews" },
-      { id: "contact", icon: "📞", label: "संपर्क करें", feature: null },
-      { id: "share", icon: "🔗", label: "QR व शेयर", feature: null },
-      { id: "license", icon: "📜", label: "लाइसेंस", feature: null }
+      { id: "contact", icon: "📞", label: "संपर्क करें", feature: "contact" },
+      { id: "share", icon: "🔗", label: "QR व शेयर", feature: "share" },
+      { id: "license", icon: "📜", label: "लाइसेंस", feature: "license" }
     ];
     const VIEW_IDS = VIEWS.map((v) => v.id).concat("overview");
     let currentView = "overview";
