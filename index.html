@@ -364,6 +364,13 @@
     .toggle-row button.active { background: var(--green); color: #fff; border-color: var(--green); }
     .calc-output, .disease-output { margin-top: 1rem; border-radius: 18px; background: rgba(45, 106, 79, 0.08); padding: 1rem; border: 1px dashed rgba(45, 106, 79, 0.28); }
 
+    /* ===== Voice focus answer + highlight ===== */
+    .focus-answer { margin: 0 0 0.4rem; padding: 0.9rem 1rem; border-radius: 16px; background: linear-gradient(135deg, rgba(244,163,0,0.18), rgba(45,106,79,0.12)); border: 1px solid rgba(244,163,0,0.5); }
+    .focus-answer .fa-q { font-weight: 700; color: var(--soil); display: block; margin-bottom: 0.35rem; }
+    .focus-answer ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+    .crop-sub { border-radius: 14px; padding: 0.4rem 0.6rem; transition: background 0.4s ease, box-shadow 0.4s ease; }
+    .crop-sub.flash { background: rgba(244,163,0,0.18); box-shadow: 0 0 0 2px rgba(244,163,0,0.5); }
+
     /* ===== Mandi board ===== */
     .newspaper-board { background: var(--card); border-radius: 30px; border: 2px solid rgba(139, 94, 60, 0.18); padding: 1.2rem; box-shadow: var(--shadow); }
     .board-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-bottom: 0.9rem; border-bottom: 1px dashed rgba(139, 94, 60, 0.26); margin-bottom: 1rem; }
@@ -1553,28 +1560,48 @@
     }
 
     /* ====================== CROP RESULT ====================== */
-    function renderCropResult(cropName) {
+    // focus (optional): "fertilizer" | "pesticide" | "seed" | "irrigation"
+    function renderCropResult(cropName, focus) {
       const cropResult = $("cropResult"); const crop = cropsData[cropName];
       if (!crop) { cropResult.innerHTML = `<h3>फसल नहीं मिली</h3><p>कृपया ऊपर दी गई सूची में से सही फसल चुनें।</p>`; return; }
       selectedCrop = cropName;
       $("cropSelect").value = cropName; $("cropSearchInput").value = cropName; $("seedCalcCrop").value = cropName;
       document.querySelectorAll(".crop-card").forEach((card) => card.classList.toggle("active", card.dataset.crop === cropName));
+
+      let focusBox = "";
+      const focusMap = {
+        fertilizer: { label: "खाद / उर्वरक सुझाव", items: crop.fertilizer },
+        pesticide: { label: "कौन सी दवा / कीटनाशक", items: crop.pesticides },
+        seed: { label: "बीज किस्में", items: crop.seeds },
+        irrigation: { label: "सिंचाई सुझाव", items: [crop.irrigation] }
+      };
+      if (focus && focusMap[focus]) {
+        const f = focusMap[focus];
+        focusBox = `<div class="focus-answer"><span class="fa-q">🎯 ${esc(cropName)} — ${esc(f.label)}</span><ul>${f.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>`;
+      }
+
       cropResult.innerHTML = `
+        ${focusBox}
         <h3>${esc(cropName)} के लिए सुझाव</h3>
         <div class="chip-row">
           <span class="chip">${crop.seeds.length} बीज विकल्प</span>
           <span class="chip">${crop.pesticides.length} दवा सुझाव</span>
           <span class="chip">पाइप सलाह उपलब्ध</span>
         </div>
-        <div><strong>उर्वरक सुझाव</strong><ul>${crop.fertilizer.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
-        <div><strong>कीटनाशक और उपयोग</strong><ul>${crop.pesticides.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
-        <div><strong>दुकान में उपलब्ध बीज किस्में</strong><ul>${crop.seeds.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
-        <div><strong>सिंचाई पाइप सुझाव</strong><p>${esc(crop.irrigation)}</p></div>`;
+        <div class="crop-sub" data-sub="fertilizer"><strong>उर्वरक सुझाव</strong><ul>${crop.fertilizer.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
+        <div class="crop-sub" data-sub="pesticide"><strong>कीटनाशक और उपयोग</strong><ul>${crop.pesticides.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
+        <div class="crop-sub" data-sub="seed"><strong>दुकान में उपलब्ध बीज किस्में</strong><ul>${crop.seeds.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>
+        <div class="crop-sub" data-sub="irrigation"><strong>सिंचाई पाइप सुझाव</strong><p>${esc(crop.irrigation)}</p></div>`;
       updateSeedCalculator();
       const sel = $("symptomSelect").value || Object.keys(crop.symptoms)[0];
       if (!$("symptomSelect").value) $("symptomSelect").value = sel;
       renderSymptomOptions(cropName, sel); renderDiseaseResult(cropName, sel);
       addRecent({ type: "crop", name: cropName });
+
+      if (focus && focusMap[focus]) {
+        const sub = cropResult.querySelector(`.crop-sub[data-sub="${focus}"]`);
+        if (sub) { sub.classList.add("flash"); setTimeout(() => sub.classList.remove("flash"), 2200); }
+      }
     }
 
     function renderSymptomOptions(cropName, selectedSymptom = "") {
@@ -1926,34 +1953,94 @@
     /* ====================== VOICE SEARCH (intent-aware) ====================== */
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    function routeVoiceQuery(transcript) {
+    function detectIntent(t) {
+      // Order matters: more specific intents first
+      if (/(भाव|रेट|दाम|कीमत|price|mandi|मंडी|बेचन|बेच)/.test(t)) return "price";
+      if (/(मौसम|बारिश|बरसात|weather|तापमान|गरमी|गर्मी|ठंड)/.test(t)) return "weather";
+      if (/(योजना|योजन|स्कीम|scheme|सब्सिडी|सब्सिडि|किसान सम्मान|बीमा|अनुदान)/.test(t)) return "scheme";
+      if (/(संपर्क|पता|फोन|कॉल|नंबर|contact|call|whatsapp|व्हाट्सएप)/.test(t)) return "contact";
+      if (/(रोग|बीमारी|बीमार|पीली|पीला|पीले|धब्बे|धब्बा|काले|मुरझा|सड़न|सडन|कीड़ा|कीड़े|इल्ली|सुंडी|फफूंद|फंगस|झुलस|खराब हो)/.test(t)) return "disease";
+      if (/(बीज|किस्म|किस्में|वैरायटी|seed|variety|बुवाई|बोवाई|बोनी)/.test(t)) return "seed";
+      if (/(दवा|दवाई|दवाइ|कीटनाशक|स्प्रे|छिड़क|छिड़काव|pesticide|spray|कीट)/.test(t)) return "pesticide";
+      if (/(खाद|उर्वरक|यूरिया|डीएपी|dap|पोषक|fertilizer|urea|पोटाश)/.test(t)) return "fertilizer";
+      if (/(सिंचाई|पानी|पाइप|मोटर|irrigation|water|pipe|hp)/.test(t)) return "irrigation";
+      return "general";
+    }
+
+    function detectSymptom(t) {
+      if (/(पीली|पीला|पीले|पिली)/.test(t)) return "पत्तियां पीली हो रही हैं";
+      if (/(धब्बे|धब्बा|काले धब|काला|दाग)/.test(t)) return "काले धब्बे";
+      if (/(मुरझा|सूख|कुम्हला|झुक)/.test(t)) return "फसल मुरझा रही है";
+      if (/(जड़|सड़न|सडन|गल)/.test(t)) return "जड़ सड़न";
+      return "";
+    }
+
+    // Shared handler used by both the big hero mic and the inline crop mic
+    function handleSmartQuery(transcript) {
       const t = normalizeValue(transcript);
-      if (!t) return;
-      // 1) Mandi / price intent
-      if (/(भाव|रेट|दाम|कीमत|price|mandi|मंडी)/.test(t)) {
-        renderMandiTable(); scrollToId("mandi"); toast("मंडी भाव दिखाए जा रहे हैं", "info"); return;
-      }
-      // 2) Weather intent
-      if (/(मौसम|बारिश|weather|तापमान|गरमी|ठंड)/.test(t)) {
-        scrollToId("weather"); toast("मौसम जानकारी दिखाई जा रही है", "info"); return;
-      }
-      // 3) Scheme intent
-      if (/(योजना|स्कीम|scheme|सब्सिडी|किसान सम्मान|बीमा)/.test(t)) {
-        scrollToId("schemes"); toast("सरकारी योजनाएं दिखाई जा रही हैं", "info"); return;
-      }
-      // 4) Contact / call intent
-      if (/(संपर्क|फोन|कॉल|नंबर|contact|call|whatsapp)/.test(t)) {
-        scrollToId("contact"); toast("संपर्क जानकारी दिखाई जा रही है", "info"); return;
-      }
-      // 5) Product match
-      const productMatch = findProductMatch(transcript);
-      if (productMatch) { renderProductResult(productMatch); scrollToId("product-search"); toast(`उत्पाद: ${productMatch}`, "success"); return; }
-      // 6) Crop match
+      if (!t) return false;
+      const intent = detectIntent(t);
       const cropMatch = findCropMatch(transcript);
-      if (cropMatch) { renderCropResult(cropMatch); scrollToId("crop-search"); toast(`फसल: ${cropMatch}`, "success"); return; }
-      // 7) Fallback: try crop section
-      toast("कोई सटीक मिलान नहीं मिला — कृपया फिर बोलें", "warn");
-      logUnrecognized(transcript);
+      const productMatch = findProductMatch(transcript);
+
+      // Price intent
+      if (intent === "price") {
+        renderMandiTable(); scrollToId("mandi");
+        toast(cropMatch ? `मंडी भाव — ${cropMatch}` : "मंडी भाव दिखाए जा रहे हैं", "info");
+        return true;
+      }
+      if (intent === "weather") { scrollToId("weather"); toast("मौसम जानकारी", "info"); return true; }
+      if (intent === "scheme") { scrollToId("schemes"); toast("सरकारी योजनाएं", "info"); return true; }
+      if (intent === "contact") { scrollToId("contact"); toast("संपर्क जानकारी", "info"); return true; }
+
+      // Disease intent with a crop -> show disease identifier, auto-pick symptom
+      if (intent === "disease" && cropMatch) {
+        renderCropResult(cropMatch);
+        const sym = detectSymptom(t) || Object.keys(cropsData[cropMatch].symptoms)[0];
+        $("symptomSelect").value = sym;
+        renderSymptomOptions(cropMatch, sym);
+        renderDiseaseResult(cropMatch, sym);
+        scrollToId("crop-search");
+        const dz = $("diseaseOutput");
+        if (dz) { dz.classList.add("flash"); setTimeout(() => dz.classList.remove("flash"), 2200); }
+        toast(`${cropMatch} — रोग पहचान (${sym})`, "success");
+        return true;
+      }
+
+      // Crop + specific topic (दवा/खाद/बीज/सिंचाई)
+      if (cropMatch && ["fertilizer", "pesticide", "seed", "irrigation"].indexOf(intent) !== -1) {
+        renderCropResult(cropMatch, intent); scrollToId("crop-search");
+        const labels = { fertilizer: "खाद सुझाव", pesticide: "दवा सुझाव", seed: "बीज जानकारी", irrigation: "सिंचाई सुझाव" };
+        toast(`${cropMatch} → ${labels[intent]}`, "success");
+        return true;
+      }
+
+      // Product mentioned (e.g., "DAP कैसे डालें")
+      if (productMatch && !cropMatch) {
+        renderProductResult(productMatch); scrollToId("product-search");
+        toast(`उत्पाद: ${productMatch}`, "success");
+        return true;
+      }
+
+      // Just a crop name, no specific topic
+      if (cropMatch) {
+        renderCropResult(cropMatch); scrollToId("crop-search");
+        toast(`फसल: ${cropMatch}`, "success");
+        return true;
+      }
+
+      // Product as last resort
+      if (productMatch) { renderProductResult(productMatch); scrollToId("product-search"); toast(`उत्पाद: ${productMatch}`, "success"); return true; }
+
+      return false;
+    }
+
+    function routeVoiceQuery(transcript) {
+      const ok = handleSmartQuery(transcript);
+      if (!ok) {
+        toast("समझ नहीं आया — फसल का नाम और 'दवा/खाद/बीज/भाव' बोलकर देखें", "warn", 4200);
+        logUnrecognized(transcript);
+      }
     }
 
     function logUnrecognized(q) {
@@ -2021,8 +2108,16 @@
         startRecognition({
           button, targetInput: target, statusEl: null,
           onResult: (t) => {
-            if (mode === "crop") { const m = findCropMatch(t); if (m) renderCropResult(m); else toast("फसल नहीं मिली", "warn"); }
-            else if (mode === "product") { const m = findProductMatch(t); if (m) renderProductResult(m); else toast("उत्पाद नहीं मिला", "warn"); }
+            if (mode === "crop") {
+              // Use the intent-aware handler; fall back to plain crop match
+              if (!handleSmartQuery(t)) {
+                const m = findCropMatch(t);
+                if (m) renderCropResult(m); else toast("फसल नहीं मिली — दोबारा बोलें", "warn");
+              }
+            } else if (mode === "product") {
+              const m = findProductMatch(t);
+              if (m) renderProductResult(m); else toast("उत्पाद नहीं मिला — दोबारा बोलें", "warn");
+            }
           }
         });
       });
@@ -2201,7 +2296,14 @@
       $("cropCards").addEventListener("keydown", (e) => { const c = e.target.closest(".crop-card"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); renderCropResult(c.dataset.crop); } });
       $("cropSearchInput").addEventListener("input", (e) => {
         clearTimeout(searchTimer); const val = e.target.value;
-        searchTimer = setTimeout(() => { const m = findCropMatch(val); if (m) renderCropResult(m); }, 300);
+        searchTimer = setTimeout(() => {
+          const m = findCropMatch(val);
+          if (m) {
+            const intent = detectIntent(normalizeValue(val));
+            const focus = ["fertilizer", "pesticide", "seed", "irrigation"].indexOf(intent) !== -1 ? intent : undefined;
+            renderCropResult(m, focus);
+          }
+        }, 300);
       });
       $("symptomSelect").addEventListener("change", (e) => { if (selectedCrop && e.target.value) { renderSymptomOptions(selectedCrop, e.target.value); renderDiseaseResult(selectedCrop, e.target.value); } });
       $("symptomOptions").addEventListener("change", (e) => { if (selectedCrop && e.target.name === "symptomRadio") { $("symptomSelect").value = e.target.value; renderDiseaseResult(selectedCrop, e.target.value); } });
