@@ -303,6 +303,19 @@
     main section { padding: 3.4rem 0; scroll-margin-top: 80px; }
     .section-head { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
     .section-kicker { display: none; }
+
+    /* ===== Home view menu (big category buttons) ===== */
+    .view-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+    .vm-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; text-align: center; padding: 1.2rem 0.8rem; border-radius: 18px; border: 1px solid var(--line); background: var(--card); color: var(--green-deep); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; min-height: 96px; }
+    .vm-btn:hover, .vm-btn:focus-visible { transform: translateY(-2px); border-color: rgba(45,106,79,0.4); box-shadow: var(--shadow); }
+    .vm-btn .vm-icon { font-size: 1.9rem; line-height: 1; }
+    .vm-btn .vm-label { font-size: 0.98rem; }
+    @media (min-width: 700px) { .view-menu { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 980px) { .view-menu { grid-template-columns: repeat(4, 1fr); } }
+    /* Back-to-home bar shown on inner views */
+    .view-back { display: none; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
+    .view-back button { border: 1px solid var(--line); background: var(--card); color: var(--green-deep); font-weight: 700; padding: 0.6rem 1rem; border-radius: 999px; cursor: pointer; box-shadow: var(--shadow-sm); }
+    body.inner-view .view-back { display: flex; }
     .section-head h2 { font-family: "Tiro Devanagari Hindi", serif; font-size: clamp(1.7rem, 4vw, 2.6rem); color: var(--green-deep); }
     .section-head p { margin: 0; max-width: 44rem; color: var(--muted); }
 
@@ -699,12 +712,18 @@
   </div>
 
   <main id="mainContent">
-    <section class="reveal">
+    <div class="container view-back"><button type="button" id="backHome">← होम / मेन्यू पर वापस जाएं</button></div>
+    <section id="overview" class="reveal">
       <div class="container">
         <div class="section-head">
-          <span class="section-kicker">Shop Highlights</span>
+          <h2>क्या देखना है?</h2>
+          <p>नीचे से कोई भी विकल्प चुनें — सिर्फ वही जानकारी खुलेगी, पूरा पेज स्क्रॉल करने की जरूरत नहीं।</p>
+        </div>
+
+        <div class="view-menu" id="viewMenu"></div>
+
+        <div class="section-head" style="margin-top:2rem;">
           <h2>दुकान और सेवाओं की झलक</h2>
-          <p>यह वेबसाइट दुकान की जानकारी और किसानों के लिए उपयोगी सलाह दोनों को एक साथ लाती है। नीचे दी गई सुविधाएं नियमित रूप से अपडेट की जा सकती हैं।</p>
         </div>
 
         <div class="service-grid">
@@ -1978,8 +1997,65 @@
     }
 
     function scrollToId(id) {
+      if (typeof showView === "function" && VIEW_IDS.indexOf(id) !== -1) { showView(id); return; }
       const el = $(id);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    /* ====================== VIEW ROUTER (one section at a time) ====================== */
+    const VIEWS = [
+      { id: "crop-search", icon: "🌱", label: "फसल खोज", feature: "cropSearch" },
+      { id: "product-search", icon: "🧪", label: "उत्पाद खोज", feature: "productSearch" },
+      { id: "mandi", icon: "📈", label: "मंडी भाव", feature: "mandi" },
+      { id: "weather", icon: "⛅", label: "मौसम", feature: "weather" },
+      { id: "calendar", icon: "📅", label: "फसल कैलेंडर", feature: "calendar" },
+      { id: "schemes", icon: "🏛️", label: "सरकारी योजना", feature: "schemes" },
+      { id: "soil", icon: "🟤", label: "मिट्टी जांच", feature: "soil" },
+      { id: "videos", icon: "🎬", label: "वीडियो गाइड", feature: "videos" },
+      { id: "forum", icon: "💬", label: "किसान मंच", feature: "forum" },
+      { id: "reviews", icon: "⭐", label: "समीक्षा व नक्शा", feature: "reviews" },
+      { id: "contact", icon: "📞", label: "संपर्क करें", feature: null },
+      { id: "share", icon: "🔗", label: "QR व शेयर", feature: null },
+      { id: "license", icon: "📜", label: "लाइसेंस", feature: null }
+    ];
+    const VIEW_IDS = VIEWS.map((v) => v.id).concat("overview");
+    let currentView = "overview";
+
+    function showView(id) {
+      if (id === "home") id = "overview";
+      if (VIEW_IDS.indexOf(id) === -1) id = "overview";
+      const v = VIEWS.find((x) => x.id === id);
+      if (v && v.feature && featureState[v.feature] === false) id = "overview";
+      currentView = id;
+      document.querySelectorAll("main > section").forEach((s) => { s.style.display = (s.id === id) ? "" : "none"; });
+      document.body.classList.toggle("inner-view", id !== "overview");
+      const sec = $(id);
+      if (sec) { sec.classList.add("visible"); sec.querySelectorAll(".reveal").forEach((e) => e.classList.add("visible")); }
+      document.querySelectorAll(".main-nav a").forEach((a) => { const t = (a.getAttribute("href") || "").slice(1); a.setAttribute("aria-current", (t === id || (id === "overview" && t === "home")) ? "true" : "false"); });
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+    function buildHomeMenu() {
+      const wrap = $("viewMenu"); if (!wrap) return;
+      wrap.innerHTML = VIEWS.filter((v) => !(v.feature && featureState[v.feature] === false))
+        .map((v) => `<button class="vm-btn" type="button" data-view="${v.id}"><span class="vm-icon" aria-hidden="true">${v.icon}</span><span class="vm-label">${esc(v.label)}</span></button>`).join("");
+      wrap.querySelectorAll(".vm-btn").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+    }
+    function updateNavVisibility() {
+      VIEWS.forEach((v) => { if (!v.feature) return; const link = document.querySelector(`.main-nav a[href="#${v.id}"]`); if (link) link.style.display = (featureState[v.feature] === false) ? "none" : ""; });
+    }
+    function closeNavMenu() { const mn = $("mainNav"), mt = $("menuToggle"); if (mn) mn.classList.remove("open"); if (mt) mt.setAttribute("aria-expanded", "false"); }
+    function initRouter() {
+      document.addEventListener("click", (e) => {
+        const a = e.target.closest('a[href^="#"]'); if (!a) return;
+        const id = (a.getAttribute("href") || "").slice(1);
+        if (!id || id === "mainContent") return;
+        if (id === "home") { e.preventDefault(); showView("overview"); closeNavMenu(); return; }
+        if (VIEW_IDS.indexOf(id) !== -1) { e.preventDefault(); showView(id); closeNavMenu(); }
+      });
+      const bh = $("backHome"); if (bh) bh.addEventListener("click", () => showView("overview"));
+      buildHomeMenu();
+      updateNavVisibility();
+      showView("overview");
     }
 
     /* ====================== QR ====================== */
@@ -2356,8 +2432,14 @@
       featureList.forEach((f) => {
         const sec = document.querySelector(`[data-feature="${f.key}"]`);
         if (sec) sec.classList.toggle("feature-off", !featureState[f.key]);
-        const navLink = document.querySelector(`.main-nav a[href="#${sectionIdForFeature(f.key)}"]`);
       });
+      if (typeof buildHomeMenu === "function") buildHomeMenu();
+      if (typeof updateNavVisibility === "function") updateNavVisibility();
+      // if the currently open view was just turned off, return to home
+      if (typeof currentView !== "undefined") {
+        const v = VIEWS.find((x) => x.id === currentView);
+        if (v && v.feature && featureState[v.feature] === false) showView("overview");
+      }
     }
     function sectionIdForFeature(key) {
       const map = { cropSearch: "crop-search", productSearch: "product-search", weather: "weather", mandi: "mandi", calendar: "calendar", schemes: "schemes", soil: "soil", videos: "videos", reviews: "reviews", forum: "forum" };
@@ -2762,6 +2844,7 @@
         initEvents();
         renderCropResult("गेहूं");
         renderProductResult("DAP");
+        initRouter();
         cloudLoad();
         hideSplash();
       } catch (err) {
