@@ -2393,9 +2393,12 @@
       if (Array.isArray(s.testimonials)) testimonials = s.testimonials;
       if (Array.isArray(s.forum)) forumQuestions = s.forum;
       if (Array.isArray(s.license)) licenseDetails = s.license;
+      if (s.features && typeof s.features === "object") { Object.keys(s.features).forEach((k) => { featureState[k] = s.features[k] !== false; }); applyFeatureState(); }
+      if (typeof s.holiday === "string") { try { localStorage.setItem(LS.holiday, s.holiday); } catch (e) {} updateShopStatus(); }
     }
     function collectSettings() {
-      return { config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails };
+      let holiday = ""; try { holiday = localStorage.getItem(LS.holiday) || ""; } catch (e) {}
+      return { config: pickConfig(), stock: stockAvailability, crops: cropsData, products: productsData, mandi: mandiPrices, schemes: schemesData, videos: videosData, testimonials: testimonials, forum: forumQuestions, license: licenseDetails, features: featureState, holiday: holiday };
     }
     function applyCmsOverrides() {
       let s = null; try { s = JSON.parse(localStorage.getItem(CMS_KEY) || "null"); } catch (e) { s = null; }
@@ -2547,17 +2550,22 @@
       if (specs[tab]) cmsList(host, specs[tab]);
     }
     function renderFeaturesTab(host) {
-      host.innerHTML = `<div class="admin-section-title">सेक्शन चालू / बंद करें</div><div id="adminToggles"></div>
+      host.innerHTML = `<div class="admin-section-title">सेक्शन चालू / बंद करें</div>
+        <p class="muted" style="font-size:0.82rem;">टॉगल दबाते ही तुरंत लागू होता है। सभी किसानों के लिए लाइव करने हेतु 💾 बैकअप टैब से 🌍 प्रकाशित करें।</p>
+        <div id="adminToggles"></div>
         <div class="admin-section-title">छुट्टी सूचना</div>
         <div class="field"><input id="adminHoliday" type="text" placeholder="जैसे: आज दोपहर 2 बजे तक बंद"></div>
         <div class="cms-form-actions"><button class="cms-btn add" type="button" id="featSave">सेव करें</button></div>`;
-      $("adminToggles").innerHTML = featureList.map((f) => `<div class="admin-toggle-row"><label for="ftoggle_${f.key}">${esc(f.label)}</label><span class="switch"><input type="checkbox" id="ftoggle_${f.key}" ${featureState[f.key] ? "checked" : ""}><span class="slider"></span></span></div>`).join("");
+      $("adminToggles").innerHTML = featureList.map((f) => `<div class="admin-toggle-row"><span>${esc(f.label)}</span><label class="switch"><input type="checkbox" id="ftoggle_${f.key}" data-fkey="${f.key}" ${featureState[f.key] ? "checked" : ""}><span class="slider"></span></label></div>`).join("");
+      $("adminToggles").querySelectorAll('input[type="checkbox"]').forEach((cb) => cb.addEventListener("change", () => {
+        featureState[cb.dataset.fkey] = cb.checked;
+        saveFeatureState(); applyFeatureState();
+        toast(cb.checked ? "सेक्शन चालू ✅" : "सेक्शन बंद किया", "info", 1400);
+      }));
       try { $("adminHoliday").value = localStorage.getItem(LS.holiday) || ""; } catch (e) {}
       $("featSave").addEventListener("click", () => {
-        featureList.forEach((f) => { const cb = $("ftoggle_" + f.key); if (cb) featureState[f.key] = cb.checked; });
-        saveFeatureState(); applyFeatureState();
         try { localStorage.setItem(LS.holiday, $("adminHoliday").value.trim()); } catch (e) {}
-        updateShopStatus(); toast("सेटिंग्स सेव हो गईं ✅", "success");
+        updateShopStatus(); saveCms(); toast("सेव हो गया ✅", "success");
       });
     }
     function renderShopTab(host) {
@@ -2725,6 +2733,7 @@
       pageInitialized = true;
       try {
         captureDefaults();
+        loadFeatureState();
         applyCmsOverrides();
         loadCloudCfg();
         initTheme();
@@ -2746,7 +2755,6 @@
         renderPopular();
         initQrCode();
         initNavigation();
-        loadFeatureState();
         initAdmin();
         initOffline();
         initScrollUI();
